@@ -1,14 +1,16 @@
-export const handler = async (event) => {
+exports.handler = async (event) => {
   const webhook = process.env.DISCORD_WEBHOOK_URL;
   const ipinfoToken = process.env.IPINFO_TOKEN;
 
   if (!webhook) {
-    return { statusCode: 500, body: "Webhook not set" };
+    return {
+      statusCode: 500,
+      body: "Webhook not set"
+    };
   }
 
-  const body = JSON.parse(event.body);
+  const body = JSON.parse(event.body || "{}");
 
-  // IP取得
   const ip =
     event.headers["x-forwarded-for"]?.split(",")[0] ||
     event.headers["client-ip"] ||
@@ -16,18 +18,19 @@ export const handler = async (event) => {
 
   const ua = event.headers["user-agent"] || "unknown";
 
-  // 国・地域取得
   let country = "unknown";
   let city = "unknown";
 
-  try {
-    const res = await fetch(
-      `https://ipinfo.io/${ip}?token=${ipinfoToken}`
-    );
-    const data = await res.json();
-    country = data.country || country;
-    city = data.city || city;
-  } catch {}
+  if (ipinfoToken) {
+    try {
+      const res = await fetch(
+        `https://ipinfo.io/${ip}?token=${ipinfoToken}`
+      );
+      const data = await res.json();
+      country = data.country || country;
+      city = data.city || city;
+    } catch {}
+  }
 
   const time = new Date().toLocaleString("ja-JP", {
     timeZone: "Asia/Tokyo"
