@@ -1,47 +1,111 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>AI黄金比診断</title>
-<style>
-body {
-  background:#000;
-  color:#fff;
-  font-family:sans-serif;
-}
-button {
-  padding:8px 16px;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>顔診断サイト（テスト）</title>
+
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      font-family: sans-serif;
+      text-align: center;
+      padding: 30px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    input[type="file"] {
+      margin: 20px 0;
+      color: #fff;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #fff;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    img {
+      margin-top: 20px;
+      max-width: 100%;
+      border-radius: 10px;
+      display: none;
+    }
+  </style>
 </head>
 <body>
 
-<h1>AI黄金比診断</h1>
+  <h1>顔診断（テスト版）</h1>
 
-<input type="file" id="file" accept="image/*"><br><br>
-<button onclick="send()">診断する</button>
+  <!-- 画像選択 -->
+  <input type="file" id="file" accept="image/*"><br>
 
-<script>
-async function send() {
-  const file = document.getElementById("file").files[0];
-  if (!file) return alert("画像選んで");
+  <!-- 送信ボタン -->
+  <button onclick="send()">診断する</button>
 
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const res = await fetch("/.netlify/functions/sendToDiscord", {
-      method: "POST",
-      body: JSON.stringify({ image: reader.result }),
-    });
+  <!-- プレビュー -->
+  <img id="preview">
 
-    if (res.ok) {
-      alert("送信完了");
-    } else {
-      alert("エラー起きました");
+  <script>
+    async function send() {
+      const fileInput = document.getElementById("file");
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert("画像を選んでください");
+        return;
+      }
+
+      // 画像サイズ簡易チェック（5MB）
+      if (file.size > 5 * 1024 * 1024) {
+        alert("画像サイズが大きすぎます（5MB以下にしてください）");
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = async () => {
+        // プレビュー表示
+        const img = document.getElementById("preview");
+        img.src = reader.result;
+        img.style.display = "block";
+
+        try {
+          const res = await fetch("/.netlify/functions/sendToDiscord", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              image: reader.result
+            })
+          });
+
+          if (res.ok) {
+            alert("画像を送信しました");
+          } else {
+            alert("エラーが発生しました");
+          }
+        } catch (e) {
+          alert("通信エラーが発生しました");
+        }
+      };
+
+      reader.readAsDataURL(file);
     }
-  };
-  reader.readAsDataURL(file);
-}
-</script>
+  </script>
 
 </body>
 </html>
