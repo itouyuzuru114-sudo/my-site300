@@ -1,55 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>顔診断</title>
+</head>
+<body>
+
+<h1>顔診断</h1>
+
+<input type="file" id="file" accept="image/*">
+<button onclick="send()">診断する</button>
+
+<img id="preview" style="max-width:100%; display:none;">
+<p id="result"></p>
+
 <script>
-async function send() {
-  const fileInput = document.getElementById("file");
-  const file = fileInput.files[0];
-
-  if (!file) {
-    alert("画像を選んでください");
-    return;
-  }
-
-  if (file.size > 5 * 1024 * 1024) {
-    alert("画像が大きすぎます（5MB以下）");
-    return;
-  }
+function send() {
+  const file = document.getElementById("file").files[0];
+  if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = async () => {
-    // プレビュー表示
+  reader.onload = function() {
     const img = document.getElementById("preview");
     img.src = reader.result;
     img.style.display = "block";
 
-    // 診断結果（仮）
-    const results = [
-      "黄金比バランス：とても良い\n整った顔立ちです。",
-      "目と鼻のバランスが良好。\n第一印象が強いタイプ。",
-      "やや個性派寄り。\n雰囲気で惹きつける顔です。",
-      "全体の左右対称性が高く、\n写真映えしやすい顔です。"
-    ];
-
-    const resultText = results[Math.floor(Math.random() * results.length)];
-
-    const resultDiv = document.getElementById("result");
-    resultDiv.innerText = "診断結果\n\n" + resultText;
-    resultDiv.style.display = "block";
-
-    // Discord送信
-    try {
-      await fetch("/.netlify/functions/sendToDiscord", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          image: reader.result
-        })
-      });
-    } catch (e) {
-      console.log("送信エラー");
-    }
+    document.getElementById("result").innerText =
+      "診断結果：黄金比 78%（仮）";
   };
-
   reader.readAsDataURL(file);
 }
 </script>
+
+</body>
+</html>
