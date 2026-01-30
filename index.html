@@ -1,113 +1,78 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI黄金比診断</title>
 
 <style>
-  body {
-    background:#000;
-    color:#fff;
-    font-family:system-ui, sans-serif;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
-  }
-  .card {
-    width:340px;
-    background:#111;
-    padding:20px;
-    border-radius:12px;
-  }
-  h2 { margin-top:0; }
-  input, button {
-    width:100%;
-    margin-top:10px;
-  }
-  button {
-    padding:10px;
-    background:gold;
-    border:none;
-    border-radius:6px;
-    font-weight:bold;
-    cursor:pointer;
-  }
-  img {
-    width:100%;
-    margin-top:10px;
-    border-radius:8px;
-    display:none;
-  }
-  label {
-    display:block;
-    margin-top:10px;
-    font-size:0.9em;
-  }
+body {
+  background: #000;
+  color: #fff;
+  font-family: sans-serif;
+  padding: 20px;
+}
+
+input[type="file"] {
+  margin-top: 10px;
+}
+
+button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.note {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 10px;
+}
 </style>
 </head>
-
 <body>
-<div class="card">
-  <h2>AI黄金比診断</h2>
 
-  <input type="file" accept="image/*" id="file" />
-  <img id="preview" />
+<h1>AI黄金比診断</h1>
 
-  <label>
-    <input type="checkbox" id="agree" />
-    画像がDiscordサーバーに送信されることに同意します
-  </label>
+<input type="file" id="imageInput" accept="image/*">
+<br>
+<button onclick="sendImage()">診断する</button>
 
-  <button onclick="sendImage()">診断を開始</button>
-
-  <p id="status"></p>
-</div>
+<p class="note">
+※アップロードされた画像は診断テスト目的でのみ使用され、保存されません
+</p>
 
 <script>
-const fileInput = document.getElementById("file");
-const preview = document.getElementById("preview");
-const statusText = document.getElementById("status");
-const agree = document.getElementById("agree");
-
-fileInput.addEventListener("change", () => {
+async function sendImage() {
+  const fileInput = document.getElementById("imageInput");
   const file = fileInput.files[0];
-  if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    preview.src = reader.result;
-    preview.style.display = "block";
-  };
-  reader.readAsDataURL(file);
-});
-
-  }
-  const file = fileInput.files[0];
   if (!file) {
-    alert("画像を選択してください");
+    alert("画像を選んでください");
     return;
   }
 
-  statusText.textContent = "送信中…";
-
   const reader = new FileReader();
   reader.onload = async () => {
-    try {
-      const res = await fetch("/.netlify/functions/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: reader.result })
-      });
-      if (!res.ok) throw new Error("送信失敗");
-      statusText.textContent = "送信完了。診断中…";
-    } catch (e) {
-      statusText.textContent = "エラーが発生しました";
+    const base64 = reader.result;
+
+    const res = await fetch("/.netlify/functions/sendToDiscord", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: base64 })
+    });
+
+    if (res.ok) {
+      alert("診断中です！");
+    } else {
+      alert("エラーが起きました");
     }
   };
+
   reader.readAsDataURL(file);
 }
 </script>
+
 </body>
 </html>
