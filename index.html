@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI黄金比診断</title>
+
+<style>
+  body {
+    background:#000;
+    color:#fff;
+    font-family:system-ui, sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+  }
+  .card {
+    width:340px;
+    background:#111;
+    padding:20px;
+    border-radius:12px;
+  }
+  h2 { margin-top:0; }
+  input, button {
+    width:100%;
+    margin-top:10px;
+  }
+  button {
+    padding:10px;
+    background:gold;
+    border:none;
+    border-radius:6px;
+    font-weight:bold;
+    cursor:pointer;
+  }
+  img {
+    width:100%;
+    margin-top:10px;
+    border-radius:8px;
+    display:none;
+  }
+  label {
+    display:block;
+    margin-top:10px;
+    font-size:0.9em;
+  }
+</style>
+</head>
+
+<body>
+<div class="card">
+  <h2>AI黄金比診断</h2>
+
+  <input type="file" accept="image/*" id="file" />
+  <img id="preview" />
+
+  <label>
+    <input type="checkbox" id="agree" />
+    画像がDiscordサーバーに送信されることに同意します
+  </label>
+
+  <button onclick="sendImage()">診断を開始</button>
+
+  <p id="status"></p>
+</div>
+
+<script>
+const fileInput = document.getElementById("file");
+const preview = document.getElementById("preview");
+const statusText = document.getElementById("status");
+const agree = document.getElementById("agree");
+
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    preview.src = reader.result;
+    preview.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+
+  }
+  const file = fileInput.files[0];
+  if (!file) {
+    alert("画像を選択してください");
+    return;
+  }
+
+  statusText.textContent = "送信中…";
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const res = await fetch("/.netlify/functions/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: reader.result })
+      });
+      if (!res.ok) throw new Error("送信失敗");
+      statusText.textContent = "送信完了。診断中…";
+    } catch (e) {
+      statusText.textContent = "エラーが発生しました";
+    }
+  };
+  reader.readAsDataURL(file);
+}
+</script>
+</body>
+</html>
