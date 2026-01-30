@@ -1,76 +1,86 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 顔診断</title>
-
-<style>
-body {
-  background: linear-gradient(135deg,#0f172a,#1e293b);
-  color:#fff;
-  font-family: system-ui;
-  text-align:center;
-  padding:30px;
-}
-.card {
-  max-width:420px;
-  margin:auto;
-  background:rgba(255,255,255,0.08);
-  padding:20px;
-  border-radius:16px;
-}
-button {
-  font-size:18px;
-  padding:12px 24px;
-  border-radius:12px;
-  border:none;
-  background:#6366f1;
-  color:#fff;
-}
-img {
-  max-width:100%;
-  margin-top:15px;
-  border-radius:12px;
-}
-</style>
+  <meta charset="UTF-8" />
+  <title>顔診断</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+      text-align: center;
+      padding: 40px;
+    }
+    img {
+      max-width: 300px;
+      margin-top: 20px;
+      border-radius: 12px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+    }
+  </style>
 </head>
-
 <body>
-<h1>AI 顔診断</h1>
 
-<div class="card">
-  <input type="file" id="file" accept="image/*"><br><br>
+  <h1>顔診断</h1>
+
+  <input type="file" id="file" accept="image/*"><br>
   <button onclick="send()">診断する</button>
 
-  <img id="preview" style="display:none;">
+  <div>
+    <img id="preview" />
+  </div>
+
   <div id="result"></div>
-</div>
 
-<script>
-function send() {
-  const file = document.getElementById("file").files[0];
-  if (!file) return alert("画像選んで");
+  <script>
+    const fileInput = document.getElementById("file");
+    const preview = document.getElementById("preview");
+    const result = document.getElementById("result");
 
-  const reader = new FileReader();
-  reader.onload = function () {
-    document.getElementById("preview").src = reader.result;
-    document.getElementById("preview").style.display = "block";
+    fileInput.onchange = () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      preview.src = URL.createObjectURL(file);
+    };
 
-    const score = Math.floor(70 + Math.random() * 25);
-    const rank = score >= 90 ? "S" : score >= 80 ? "A" : "B";
+    async function send() {
+      // ダミー診断結果（成功したときと同じ）
+      const score = Math.floor(70 + Math.random() * 20);
+      const rank =
+        score > 90 ? "S" :
+        score > 80 ? "A" :
+        score > 70 ? "B" : "C";
 
-    document.getElementById("result").innerHTML =
-      `黄金比：<b>${score}%</b><br>ランク：<b>${rank}</b>`;
+      result.innerHTML = `
+        黄金比：${score}%<br>
+        ランク：${rank}
+      `;
 
-    fetch("/.netlify/functions/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ score, rank })
-    });
-  };
-  reader.readAsDataURL(file);
-}
-</script>
+      await fetch("/.netlify/functions/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          score,
+          rank
+        })
+      });
+    }
+  </script>
+
 </body>
+</html>
+
 </html>
