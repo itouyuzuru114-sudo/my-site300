@@ -1,33 +1,23 @@
-export const handler = async (event) => {
-  const webhook = process.env.DISCORD_WEBHOOK;
+function sendToDiscord(base64Image, score, rank) {
+  const formData = new FormData();
 
-  if (!webhook) {
-    return {
-      statusCode: 500,
-      body: "Webhook not set"
-    };
-  }
+  // 画像をファイルとして追加
+  formData.append(
+    "file",
+    dataURLtoBlob(base64Image),
+    "face.png"
+  );
 
-  const body = JSON.parse(event.body || "{}");
-
-  const message = `
-📸 顔診断結果
-黄金比：${body.score}%
-ランク：${body.rank}
-`;
-
-  await fetch(webhook, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      content: message
+  // Discordに送るメッセージ本文
+  formData.append(
+    "payload_json",
+    JSON.stringify({
+      content: `📸 顔診断結果\n黄金比：${score}%\nランク：${rank}`
     })
-  });
+  );
 
-  return {
-    statusCode: 200,
-    body: "sent"
-  };
-};
+  fetch(WEBHOOK_URL, {
+    method: "POST",
+    body: formData
+  });
+}
