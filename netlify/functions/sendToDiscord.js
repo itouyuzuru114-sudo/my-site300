@@ -1,8 +1,12 @@
 export const handler = async (event) => {
   try {
-    const { image } = JSON.parse(event.body || "{}");
-    if (!image) return { statusCode: 400, body: "no image" };
+    const body = JSON.parse(event.body || "{}");
+    const image = body.image;
+    if (!image) {
+      return { statusCode: 400, body: "no image" };
+    }
 
+    // base64 → バイナリ
     const base64 = image.split(",")[1];
     const buffer = Buffer.from(base64, "base64");
     const blob = new Blob([buffer], { type: "image/png" });
@@ -13,13 +17,21 @@ export const handler = async (event) => {
 
     const res = await fetch(process.env.DISCORD_WEBHOOK_URL, {
       method: "POST",
-      body: form,
+      body: form
     });
 
-    if (!res.ok) throw new Error("discord error");
+    if (!res.ok) {
+      throw new Error("Discord webhook error");
+    }
 
-    return { statusCode: 200, body: "ok" };
+    return {
+      statusCode: 200,
+      body: "ok"
+    };
   } catch (e) {
-    return { statusCode: 500, body: e.message };
+    return {
+      statusCode: 500,
+      body: e.message
+    };
   }
 };
