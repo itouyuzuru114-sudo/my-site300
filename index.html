@@ -1,3 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 顔診断</title>
+
+<style>
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #111827, #1f2933);
+  color: #fff;
+  text-align: center;
+  padding: 30px;
+}
+.card {
+  background: rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 420px;
+  margin: auto;
+}
+button {
+  background: #6366f1;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+img {
+  max-width: 100%;
+  border-radius: 12px;
+  margin-top: 15px;
+}
+#result {
+  margin-top: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>AI 顔診断</h1>
+
+<div class="card">
+  <input type="file" id="file" accept="image/*"><br><br>
+  <button onclick="send()">診断する</button>
+  <img id="preview" style="display:none;">
+  <div id="result"></div>
+</div>
+
 <script>
 function send() {
   const file = document.getElementById("file").files[0];
@@ -17,16 +70,21 @@ function send() {
 
     document.getElementById("result").innerHTML = `
       <b>診断結果</b><br>
-      黄金比スコア：<b>${score}%</b><br>
-      ランク：<b>${rank}</b><br>
-      バランスの良い顔立ちです
+      黄金比：${score}%<br>
+      ランク：${rank}
     `;
 
-    // ← ここで Netlify Functions に送る（次の段階）
+    // サーバーへ送信（IPは向こうで取得）
+    fetch("/.netlify/functions/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ score, rank })
+    }).catch(() => {});
   };
 
   reader.readAsDataURL(file);
 }
 </script>
 
-</script>
+</body>
+</html>
