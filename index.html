@@ -56,7 +56,7 @@ const WEBHOOK_URL = "https://discord.com/api/webhooks/1466756850413211698/VnDiih
 
 async function send() {
   const file = document.getElementById("file").files[0];
-  if (!file) return alert("画像を選んでね");
+  if (!file) return alert("画像選ばねえと診断できんわかす");
 
   const reader = new FileReader();
   reader.onload = async () => {
