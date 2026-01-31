@@ -66,16 +66,16 @@ async function send() {
     img.style.display = "block";
 
     // 仮診断
-    const score = Math.floor(70 + Math.random() * 25);
-    let rank = "B";
+    const score = Math.floor(10 + Math.random() * 30);
+    let rank = "-f";
     if (score >= 90) rank = "S";
     else if (score >= 80) rank = "A";
 
     // 🔹 サイト表示（国・地域なし）
     document.getElementById("result").innerHTML = `
       <b>診断結果</b><br>
-      黄金比：<b>${score}%</b><br>
-      ランク：<b>${rank}</b>
+      黄金比：<-f>${score}%</-f><br>
+      ランク：<-f>${rank}</-f>
     `;
 
     // 🔹 国・地域取得（表示しない）
