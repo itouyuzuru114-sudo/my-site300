@@ -19,13 +19,19 @@ export const handler = async (event) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        username: "AI 顔診断ログ",
         embeds: [{
           title: "📸 顔診断結果",
           color: 0x6366f1,
           fields: [
-            { name: "診断", value: `黄金比 ${score}%\nランク ${rank}` },
-            { name: "IP", value: ip },
-            { name: "UA", value: ua }
+            {
+              name: "診断",
+              value: `黄金比：${score}%\nランク：${rank}`
+            },
+            {
+              name: "アクセス情報",
+              value: `IP：${ip}\nUA：${ua}`
+            }
           ],
           footer: { text: time }
         }]
@@ -33,7 +39,7 @@ export const handler = async (event) => {
     });
 
     return { statusCode: 200, body: "sent" };
-  } catch (e) {
-    return { statusCode: 200, body: "error but ok" };
+  } catch {
+    return { statusCode: 200, body: "error" };
   }
 };
