@@ -18,20 +18,36 @@ export const handler = async (event) => {
     timeZone: "Asia/Tokyo"
   });
 
-  // ===== Discordに送る内容 =====
-  const message =
-`📸 顔診断結果
-黄金比：${score}%
-ランク：${rank}
-
-🌐 IP：${ip}
-🖥 UA：${ua}
-⏰ 時刻：${time}`;
+  // ===== Discord Embed（おしゃれ）=====
+  const payload = {
+    username: "AI 顔診断ログ",
+    embeds: [
+      {
+        title: "📸 顔診断結果",
+        color: 0x6366f1, // 紫
+        fields: [
+          {
+            name: "🧠 診断",
+            value: `黄金比：**${score}%**\nランク：**${rank}**`,
+            inline: false
+          },
+          {
+            name: "🌐 アクセス情報",
+            value: `IP：\`${ip}\`\nUA：\`${ua}\``,
+            inline: false
+          }
+        ],
+        footer: {
+          text: `診断時刻：${time}`
+        }
+      }
+    ]
+  };
 
   await fetch(webhook, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content: message })
+    body: JSON.stringify(payload)
   });
 
   return {
